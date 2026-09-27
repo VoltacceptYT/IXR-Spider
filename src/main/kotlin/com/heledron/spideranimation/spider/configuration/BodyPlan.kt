@@ -2,7 +2,11 @@ package com.heledron.spideranimation.spider.configuration
 
 import com.heledron.spideranimation.spider.presets.AnimatedPalettes
 import com.heledron.spideranimation.spider.presets.SpiderTorsoModels
+import com.heledron.spideranimation.spider.presets.blinkingPaletteFor
+import com.heledron.spideranimation.spider.presets.concreteBlockData
+import com.heledron.spideranimation.spider.presets.eyePaletteFor
 import com.heledron.spideranimation.utilities.DisplayModel
+import org.bukkit.DyeColor
 import org.bukkit.util.Vector
 
 class SegmentPlan(
@@ -27,6 +31,35 @@ class BodyPlan {
 
     var eyePalette = AnimatedPalettes.CYAN_EYES.palette
     var blinkingPalette = AnimatedPalettes.CYAN_BLINKING_LIGHTS.palette
+
+    // Player-customizable appearance. These track the *current* selection so
+    // a customization GUI can show which option is active; the actual look
+    // is applied by the setters below.
+    var bodyColor: DyeColor = DyeColor.WHITE; private set
+    var glowColor: DyeColor = DyeColor.CYAN; private set
+
+    /**
+     * Recolors the body's paintable surface (the pieces tagged "cloak" on
+     * the torso and legs, which default to white) to the given dye color.
+     * These are the same pieces the Cloak component tints for camouflage,
+     * so this just changes their resting color.
+     */
+    fun setBodyColor(dye: DyeColor) {
+        bodyColor = dye
+        val block = dye.concreteBlockData()
+
+        val pieces = bodyModel.pieces.filter { it.tags.contains("cloak") } +
+            legs.flatMap { leg -> leg.segments.flatMap { it.model.pieces.filter { piece -> piece.tags.contains("cloak") } } }
+
+        for (piece in pieces) piece.block = block
+    }
+
+    /** Recolors the animated eyes and blinking accent lights to the given dye color. */
+    fun setGlowColor(dye: DyeColor) {
+        glowColor = dye
+        eyePalette = eyePaletteFor(dye)
+        blinkingPalette = blinkingPaletteFor(dye)
+    }
 
     fun scale(scale: Double) {
         this.scale *= scale

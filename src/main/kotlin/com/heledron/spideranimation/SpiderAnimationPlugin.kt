@@ -5,6 +5,7 @@ import com.heledron.spideranimation.kinematic_chain_visualizer.KinematicChainVis
 import com.heledron.spideranimation.kinematic_chain_visualizer.setupChainVisualizer
 import com.heledron.spideranimation.spider.components.body.SpiderBody
 import com.heledron.spideranimation.spider.components.rendering.SpiderRenderer
+import com.heledron.spideranimation.spider.gui.setupSpiderCustomizationGUI
 import com.heledron.spideranimation.spider.setupSpider
 import com.heledron.spideranimation.spider.setupSpiderOwnership
 import com.heledron.spideranimation.laser.setupLaserPointer
@@ -40,6 +41,7 @@ class SpiderAnimationPlugin : JavaPlugin() {
         setupChainVisualizer(ecs)
         setupLaserPointer(ecs)
         setupSpiderOwnership()
+        setupSpiderCustomizationGUI()
 
         ecs.start()
         onTick {

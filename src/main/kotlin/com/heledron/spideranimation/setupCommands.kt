@@ -7,6 +7,7 @@ import com.heledron.spideranimation.spider.configuration.CloakOptions
 import com.heledron.spideranimation.spider.configuration.Gait
 import com.heledron.spideranimation.spider.configuration.SpiderDebugOptions
 import com.heledron.spideranimation.spider.configuration.SpiderOptions
+import com.heledron.spideranimation.spider.gui.openSpiderCustomizationGUI
 import com.heledron.spideranimation.spider.presets.*
 import com.heledron.spideranimation.utilities.Serializer
 import com.heledron.spideranimation.utilities.custom_items.setupCustomItemCommand
@@ -471,6 +472,17 @@ fun setupCommands(plugin: SpiderAnimationPlugin) {
         plugin.writeAndSaveConfig()
 
         sender.sendMessage("Set scale to $scale")
+
+        return@setExecutor true
+    }
+
+    getCommand("customize").setExecutor { sender, _, _, _ ->
+        val player = sender as? Player ?: run {
+            sender.sendMessage("This command can only be used by players.")
+            return@setExecutor true
+        }
+
+        openSpiderCustomizationGUI(player)
 
         return@setExecutor true
     }

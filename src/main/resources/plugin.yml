@@ -37,6 +37,9 @@ commands:
   splay:
     description: Splay
     permission: spider-animation.splay
+  customize:
+    description: Open the robo-spider customization menu
+    permission: spider-animation.customize
 
 permissions:
   spider-animation.items:
@@ -72,3 +75,6 @@ permissions:
   spider-animation.splay:
     description: Allows access to the splay command
     default: op
+  spider-animation.customize:
+    description: Allows access to the customize command
+    default: true
