@@ -53,6 +53,7 @@ class SpiderProjectile(
     val slownessDurationTicks: Int,
     val slownessAmplifier: Int,
     val maxAgeTicks: Int,
+    val scale: Double,
 ) : Component {
     var age = 0
     var previousPosition: Vector = position.clone()
@@ -81,6 +82,7 @@ fun fireSpiderProjectile(app: ECS, entity: ECSEntity, spider: SpiderBody, option
             slownessDurationTicks = config.slownessDurationTicks,
             slownessAmplifier = config.slownessAmplifier,
             maxAgeTicks = config.projectileLifetimeTicks,
+            scale = scale,
         )
     )
 
@@ -149,7 +151,7 @@ fun setupSpiderProjectiles(app: ECS) {
                     it.interpolationDuration = 1
                 },
                 update = {
-                    it.interpolateTransform(Matrix4f().rotate(orientation))
+                    it.interpolateTransform(Matrix4f().rotate(orientation).scale((projectile.scale * 0.75).toFloat()))
                 }
             ).submit(entity)
         }
