@@ -1,1 +1,1 @@
-rootProject.name = "spider-animation"
+rootProject.name = "spiderbot"

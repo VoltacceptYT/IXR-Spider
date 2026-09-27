@@ -37,6 +37,6 @@ jobs:
       - name: Upload plugin jar
         uses: actions/upload-artifact@v4
         with:
-          name: spider-animation-plugin
+          name: spiderbot-plugin
           path: build/libs/*.jar
           if-no-files-found: error
