@@ -3,6 +3,7 @@ package com.heledron.spideranimation
 import com.google.gson.Gson
 import com.heledron.spideranimation.spider.components.splay
 import com.heledron.spideranimation.spider.components.body.SpiderBody
+import com.heledron.spideranimation.spider.configuration.AttackOptions
 import com.heledron.spideranimation.spider.configuration.CloakOptions
 import com.heledron.spideranimation.spider.configuration.Gait
 import com.heledron.spideranimation.spider.configuration.SpiderDebugOptions
@@ -33,6 +34,7 @@ fun setupCommands(plugin: SpiderAnimationPlugin) {
                 "debug" to { optionsComponent.debug },
                 "misc" to { AppState.miscOptions },
                 "cloak" to { optionsComponent.cloak },
+                "attack" to { optionsComponent.attack },
             )
 
             val defaultObjects = mapOf(
@@ -42,6 +44,7 @@ fun setupCommands(plugin: SpiderAnimationPlugin) {
                 "debug" to { SpiderDebugOptions() },
                 "misc" to { MiscellaneousOptions() },
                 "cloak" to { CloakOptions() },
+                "attack" to { AttackOptions() },
             )
 
             val obj = options[args.getOrNull(0)]?.invoke() ?: return@setExecutor false
@@ -91,6 +94,7 @@ fun setupCommands(plugin: SpiderAnimationPlugin) {
                 "debug" to { optionsComponent.debug },
                 "misc" to { AppState.miscOptions },
                 "cloak" to { optionsComponent.cloak },
+                "attack" to { optionsComponent.attack },
             )
 
             if (args.size == 1) {

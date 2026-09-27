@@ -51,6 +51,14 @@ fun setupSoundAndParticles(app: ECS) {
         event.spider.world.playSound(event.spider.position, Sound.ENTITY_ZOMBIE_VILLAGER_CURE, .02f, 1.5f)
     }
 
+    app.onEvent<SpiderShootEvent> { event ->
+        event.spider.world.playSound(event.spider.position, Sound.BLOCK_DISPENSER_LAUNCH, .6f, 1.4f)
+    }
+
+    app.onEvent<SpiderProjectileHitEvent> { event ->
+        event.world.playSound(event.position, Sound.ENTITY_ARROW_HIT, .6f, 1.0f)
+    }
+
     app.onEvent<LegStepEvent> { event ->
         val isUnderWater = event.spider.world.getBlockAt(event.leg.endEffector.toLocation(event.spider.world)).isLiquid
 

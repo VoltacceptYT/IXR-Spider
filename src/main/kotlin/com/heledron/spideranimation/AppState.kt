@@ -9,6 +9,7 @@ import com.heledron.spideranimation.spider.components.Mountable
 import com.heledron.spideranimation.spider.components.Owner
 import com.heledron.spideranimation.spider.components.PointDetector
 import com.heledron.spideranimation.spider.components.SoundsAndParticles
+import com.heledron.spideranimation.spider.components.SpiderAttacker
 import com.heledron.spideranimation.spider.components.TridentHitDetector
 import com.heledron.spideranimation.spider.presets.hexBot
 import com.heledron.spideranimation.spider.components.rendering.SpiderRenderer
@@ -35,6 +36,7 @@ object AppState {
             SoundsAndParticles(),
             Mountable(),
             PointDetector(),
+            SpiderAttacker(),
             SpiderRenderer(),
         )
 
