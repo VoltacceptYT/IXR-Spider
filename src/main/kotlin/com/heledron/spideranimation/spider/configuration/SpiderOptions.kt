@@ -20,6 +20,8 @@ class SpiderOptions : Component {
 
     var sound = SoundOptions()
 
+    var attack = AttackOptions()
+
     fun copyFrom(other: SpiderOptions) {
         walkGait = other.walkGait
         gallopGait = other.gallopGait
@@ -28,6 +30,7 @@ class SpiderOptions : Component {
         bodyPlan = other.bodyPlan
         debug = other.debug
         sound = other.sound
+        attack = other.attack
     }
 
 //    fun scale(scale: Double) {
