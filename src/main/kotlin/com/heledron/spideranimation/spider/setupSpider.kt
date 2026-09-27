@@ -1,66 +1,48 @@
-package com.heledron.spideranimation.spider.configuration
+package com.heledron.spideranimation.spider
 
-import com.heledron.spideranimation.utilities.ecs.Component
-import org.bukkit.Sound
-import org.bukkit.util.Vector
-import kotlin.random.Random
+import com.heledron.spideranimation.spider.components.body.setupSpiderBody
+import com.heledron.spideranimation.spider.components.*
+import com.heledron.spideranimation.spider.components.body.SpiderBody
+import com.heledron.spideranimation.spider.components.rendering.setupRenderer
+import com.heledron.spideranimation.utilities.ecs.ECS
+import com.heledron.spideranimation.utilities.ecs.ECSEntity
+import org.bukkit.Bukkit
 
-class SpiderOptions : Component {
-    var walkGait = Gait.defaultWalk()
-    var gallopGait = Gait.defaultGallop()
+// How close an owned spider tries to stay to its owner, in blocks.
+private const val FOLLOW_OWNER_DISTANCE = 3.0
 
-    var gallop = false
-	/** Currently active gait. */
-    val gait get() = if (gallop) gallopGait else walkGait
+fun setupSpider(app: ECS) {
+    setupSpiderBody(app)
+    setupBehaviours(app)
 
-    var cloak = CloakOptions()
+    // Default behaviour: owned spiders follow their owner around; spiders
+    // without an owner (e.g. spawned via the spider item) just stay still.
+    // This can still be overridden later in the tick (e.g. by mounting or
+    // using the laser pointer/come-here item).
+    app.onTick {
+        for ((entity, _) in app.query<ECSEntity, SpiderBody>()) {
+            val ownerUUID = entity.query<Owner>()?.playerUUID
+            val ownerPlayer = ownerUUID?.let { Bukkit.getPlayer(it) }
 
-    var bodyPlan = BodyPlan()
-    var debug = SpiderDebugOptions()
-
-    var sound = SoundOptions()
-
-    var attack = AttackOptions()
-
-    fun copyFrom(other: SpiderOptions) {
-        walkGait = other.walkGait
-        gallopGait = other.gallopGait
-        gallop = other.gallop
-        cloak = other.cloak
-        bodyPlan = other.bodyPlan
-        debug = other.debug
-        sound = other.sound
-        attack = other.attack
+            if (ownerPlayer != null) {
+                entity.replaceComponent<SpiderBehaviour>(
+                    TargetBehaviour(ownerPlayer.location.toVector(), FOLLOW_OWNER_DISTANCE)
+                )
+            } else {
+                entity.replaceComponent<SpiderBehaviour>(StayStillBehaviour())
+            }
+        }
     }
 
-//    fun scale(scale: Double) {
-//        walkGait.scale(scale)
-//        gallopGait.scale(scale)
-//        bodyPlan.scale(scale)
-//    }
-}
+    // Attacking overrides the default follow/stay-still behaviour above whenever the spider
+    // has a target, but is itself overridden by rider control (set up by setupMountable below).
+    setupSpiderAttack(app)
 
-
-
-class SoundOptions {
-    var step = SoundPlayer(
-        sound = Sound.BLOCK_NETHERITE_BLOCK_STEP,
-        volume = .3f,
-        pitch = 1.0f
-    )
-}
-
-
-class SoundPlayer(
-    val sound: Sound,
-    val volume: Float,
-    val pitch: Float,
-    val volumeVary: Float = 0.1f,
-    val pitchVary: Float = 0.1f
-) {
-    fun play(world: org.bukkit.World, position: Vector) {
-        val volume = volume + Random.nextFloat() * volumeVary
-        val pitch = pitch + Random.nextFloat() * pitchVary
-        world.playSound(position.toLocation(world), sound, volume, pitch)
-    }
+    setupCloak(app)
+    setupMountable(app)
+    setupPointDetector(app)
+    setupSoundAndParticles(app)
+    setupTridentHitDetector(app)
+    setupSpiderProjectiles(app)
+    setupRenderer(app)
 }
