@@ -88,6 +88,7 @@ fun setupSpiderAttack(app: ECS) {
             val stillValid = currentTarget != null &&
                 currentTarget.isValid &&
                 !currentTarget.isDead &&
+                !currentTarget.isInvulnerable &&
                 currentTarget.world == spider.world &&
                 currentTarget.position.distance(spider.position) <= config.loseRange
 
@@ -97,6 +98,7 @@ fun setupSpiderAttack(app: ECS) {
                     .filterIsInstance<LivingEntity>()
                     .filter { it.isValid && !it.isDead }
                     .filter { it != ownerPlayer }
+                    .filter { !it.isInvulnerable }
                     .filter { it is Monster || attacker.provoked.containsKey(it.uniqueId) }
 
                 attacker.target = candidates.minByOrNull { it.position.distanceSquared(spider.position) }

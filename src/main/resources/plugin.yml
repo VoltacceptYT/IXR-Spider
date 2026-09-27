@@ -1,5 +1,5 @@
 name: spiderbot
-version: '4.0-SNAPSHOT'
+version: '5.0-Release'
 main: net.browselotus.spiderbot.SpiderAnimationPlugin
 api-version: '1.21'
 

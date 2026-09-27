@@ -52,11 +52,11 @@ fun setupSoundAndParticles(app: ECS) {
     }
 
     app.onEvent<SpiderShootEvent> { event ->
-        event.spider.world.playSound(event.spider.position, Sound.BLOCK_DISPENSER_LAUNCH, .6f, 1.4f)
+        event.spider.world.playSound(event.spider.position, Sound.ENTITY_SPIDER_HURT, .6f, 1.4f)
     }
 
     app.onEvent<SpiderProjectileHitEvent> { event ->
-        event.world.playSound(event.position, Sound.ENTITY_ARROW_HIT, .6f, 1.0f)
+        event.world.playSound(event.position, Sound.BLOCK_COBWEB_HIT, .6f, 1.0f)
     }
 
     app.onEvent<LegStepEvent> { event ->
