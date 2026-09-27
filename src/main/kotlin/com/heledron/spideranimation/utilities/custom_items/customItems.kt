@@ -76,6 +76,33 @@ class CustomItemComponent(val id: String) {
             }
         }
     }
+
+    /**
+     * Keeps this item locked to the player's offhand slot. Whenever the item is found anywhere
+     * else in a player's inventory (main hand, hotbar, storage, picked up, swapped, etc.) it is
+     * moved back into the offhand, swapping with whatever was there if needed.
+     */
+    fun lockToOffHand() {
+        onTick {
+            for (player in Bukkit.getServer().onlinePlayers) {
+                val inventory = player.inventory
+                val offHandItem = inventory.itemInOffHand
+
+                if (isAttached(offHandItem)) continue
+
+                val contents = inventory.contents
+                val slot = contents.indexOfFirst { it != null && isAttached(it) }
+                if (slot == -1) continue
+
+                val item = contents[slot] ?: continue
+
+                inventory.setItem(slot, if (offHandItem.type == Material.AIR) null else offHandItem)
+                inventory.setItemInOffHand(item)
+
+                player.playSound(player.location, org.bukkit.Sound.ITEM_ARMOR_EQUIP_NETHERITE, 0.5f, 1.4f)
+            }
+        }
+    }
 }
 
 fun createNamedItem(material: Material, name: String): ItemStack {
