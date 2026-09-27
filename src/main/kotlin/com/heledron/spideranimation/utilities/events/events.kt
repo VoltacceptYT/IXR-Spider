@@ -10,6 +10,8 @@ import org.bukkit.event.block.Action
 import org.bukkit.event.entity.EntitySpawnEvent
 import org.bukkit.event.player.PlayerInteractEntityEvent
 import org.bukkit.event.player.PlayerInteractEvent
+import org.bukkit.event.player.PlayerJoinEvent
+import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.inventory.EquipmentSlot
 import org.bukkit.inventory.ItemStack
 import java.io.Closeable
@@ -46,6 +48,24 @@ fun onSpawnEntity(listener: (Entity) -> Unit): Closeable {
         @EventHandler
         fun onSpawn(event: EntitySpawnEvent) {
             listener(event.entity)
+        }
+    })
+}
+
+fun onPlayerJoin(listener: (Player) -> Unit): Closeable {
+    return addEventListener(object : Listener {
+        @EventHandler
+        fun onJoin(event: PlayerJoinEvent) {
+            listener(event.player)
+        }
+    })
+}
+
+fun onPlayerQuit(listener: (Player) -> Unit): Closeable {
+    return addEventListener(object : Listener {
+        @EventHandler
+        fun onQuit(event: PlayerQuitEvent) {
+            listener(event.player)
         }
     })
 }

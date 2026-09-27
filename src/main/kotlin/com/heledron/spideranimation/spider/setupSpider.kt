@@ -6,14 +6,31 @@ import com.heledron.spideranimation.spider.components.body.SpiderBody
 import com.heledron.spideranimation.spider.components.rendering.setupRenderer
 import com.heledron.spideranimation.utilities.ecs.ECS
 import com.heledron.spideranimation.utilities.ecs.ECSEntity
+import org.bukkit.Bukkit
+
+// How close an owned spider tries to stay to its owner, in blocks.
+private const val FOLLOW_OWNER_DISTANCE = 3.0
 
 fun setupSpider(app: ECS) {
     setupSpiderBody(app)
     setupBehaviours(app)
 
+    // Default behaviour: owned spiders follow their owner around; spiders
+    // without an owner (e.g. spawned via the spider item) just stay still.
+    // This can still be overridden later in the tick (e.g. by mounting or
+    // using the laser pointer/come-here item).
     app.onTick {
         for ((entity, _) in app.query<ECSEntity, SpiderBody>()) {
-            entity.replaceComponent<SpiderBehaviour>(StayStillBehaviour())
+            val ownerUUID = entity.query<Owner>()?.playerUUID
+            val ownerPlayer = ownerUUID?.let { Bukkit.getPlayer(it) }
+
+            if (ownerPlayer != null) {
+                entity.replaceComponent<SpiderBehaviour>(
+                    TargetBehaviour(ownerPlayer.location.toVector(), FOLLOW_OWNER_DISTANCE)
+                )
+            } else {
+                entity.replaceComponent<SpiderBehaviour>(StayStillBehaviour())
+            }
         }
     }
 

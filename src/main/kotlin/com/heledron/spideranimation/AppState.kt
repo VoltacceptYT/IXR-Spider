@@ -6,6 +6,7 @@ import com.heledron.spideranimation.spider.configuration.BodyPlan
 import com.heledron.spideranimation.spider.components.body.SpiderBody
 import com.heledron.spideranimation.spider.components.Cloak
 import com.heledron.spideranimation.spider.components.Mountable
+import com.heledron.spideranimation.spider.components.Owner
 import com.heledron.spideranimation.spider.components.PointDetector
 import com.heledron.spideranimation.spider.components.SoundsAndParticles
 import com.heledron.spideranimation.spider.components.TridentHitDetector
@@ -24,9 +25,9 @@ object AppState {
 
     var target: Location? = null
 
-    fun createSpider(location: Location, options: SpiderOptions): ECSEntity {
+    fun createSpider(location: Location, options: SpiderOptions, ownerUUID: java.util.UUID? = null): ECSEntity {
         location.y += options.walkGait.stationary.bodyHeight
-        return ecs.spawn(
+        val entity = ecs.spawn(
             SpiderBody.fromLocation(location),
             options,
             TridentHitDetector(),
@@ -36,10 +37,18 @@ object AppState {
             PointDetector(),
             SpiderRenderer(),
         )
+
+        if (ownerUUID != null) entity.addComponent(Owner(ownerUUID))
+
+        return entity
     }
 
     fun findSpiderByUUID(uuid: java.util.UUID): ECSEntity? {
         return ecs.query<ECSEntity, SpiderBody>().find { it.second.uuid == uuid }?.first
+    }
+
+    fun findSpiderByOwner(playerUUID: java.util.UUID): ECSEntity? {
+        return ecs.query<ECSEntity, Owner>().find { it.second.playerUUID == playerUUID }?.first
     }
 
     fun findNearestSpider(player: Player): ECSEntity? {

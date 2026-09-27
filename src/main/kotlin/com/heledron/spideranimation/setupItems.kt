@@ -189,6 +189,7 @@ fun setupItems() {
                         world = player.world,
                         position = position,
                         isVisible = isVisible,
+                        owner = player,
                     )
                 )
             }
