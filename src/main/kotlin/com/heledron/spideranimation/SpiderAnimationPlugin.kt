@@ -5,7 +5,9 @@ import com.heledron.spideranimation.kinematic_chain_visualizer.KinematicChainVis
 import com.heledron.spideranimation.kinematic_chain_visualizer.setupChainVisualizer
 import com.heledron.spideranimation.spider.components.body.SpiderBody
 import com.heledron.spideranimation.spider.components.rendering.SpiderRenderer
+import com.heledron.spideranimation.spider.configuration.SpiderOptions
 import com.heledron.spideranimation.spider.gui.setupSpiderCustomizationGUI
+import com.heledron.spideranimation.spider.saveSpiderOptions
 import com.heledron.spideranimation.spider.setupSpider
 import com.heledron.spideranimation.spider.setupSpiderOwnership
 import com.heledron.spideranimation.laser.setupLaserPointer
@@ -14,15 +16,19 @@ import com.heledron.spideranimation.utilities.events.onSpawnEntity
 import com.heledron.spideranimation.utilities.events.onTick
 import com.heledron.spideranimation.utilities.setupCoreUtils
 import com.heledron.spideranimation.utilities.shutdownCoreUtils
+import org.bukkit.Bukkit
 import org.bukkit.plugin.java.JavaPlugin
 
 @Suppress("unused")
 class SpiderAnimationPlugin : JavaPlugin() {
     fun writeAndSaveConfig() {
-//            for ((key, value) in options) {
-//                instance.config.set(key, Serializer.toMap(value()))
-//            }
-//            instance.saveConfig()
+        // Persist every online player's current spider customization to disk right away,
+        // rather than waiting for them to leave or the server to shut down.
+        for (player in Bukkit.getOnlinePlayers()) {
+            val entity = AppState.findSpiderByOwner(player.uniqueId) ?: continue
+            val options = entity.query<SpiderOptions>() ?: continue
+            saveSpiderOptions(player.uniqueId, options)
+        }
     }
 
     override fun onDisable() {

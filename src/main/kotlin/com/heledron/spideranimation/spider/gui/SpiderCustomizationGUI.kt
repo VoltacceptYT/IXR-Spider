@@ -3,6 +3,7 @@ package com.heledron.spideranimation.spider.gui
 import com.heledron.spideranimation.AppState
 import com.heledron.spideranimation.spider.components.body.SpiderBody
 import com.heledron.spideranimation.spider.configuration.SpiderOptions
+import com.heledron.spideranimation.spider.saveSpiderOptions
 import com.heledron.spideranimation.utilities.events.addEventListener
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
@@ -91,6 +92,7 @@ private fun onMainMenuClick(player: Player, slot: Int, spider: SpiderBody, optio
 
     player.playSound(player.location, Sound.UI_BUTTON_CLICK, 0.5f, 1.2f)
     refreshMain(inventory, options)
+    saveSpiderOptions(player.uniqueId, options)
 }
 
 private fun onColorMenuClick(player: Player, slot: Int, options: SpiderOptions, inventory: Inventory, isBody: Boolean) {
@@ -106,6 +108,7 @@ private fun onColorMenuClick(player: Player, slot: Int, options: SpiderOptions, 
 
     player.playSound(player.location, Sound.UI_BUTTON_CLICK, 0.5f, 1.2f)
     refreshColorMenu(inventory, options, isBody)
+    saveSpiderOptions(player.uniqueId, options)
 }
 
 fun openSpiderCustomizationGUI(player: Player) {
