@@ -21,6 +21,9 @@ import kotlin.math.ceil
 import kotlin.math.floor
 
 
+/** How far a leg with a bend direction pushes its joints out, as a fraction of the leg's length. */
+private const val BEND_AMOUNT = 0.25
+
 class LegStepEvent(val entity: ECSEntity, val spider: SpiderBody, val leg: Leg)
 
 class Leg(
@@ -113,7 +116,11 @@ class Leg(
         // update chain
         chain.root.copy(attachmentPosition)
 
-        if (options.gait.straightenLegs) {
+        val bendDirection = legPlan.bendDirection
+        if (bendDirection != null) {
+            // limbs that hang straight down (e.g. a humanoid's legs) need their knees pointed explicitly
+            chain.seedBent(endEffector, bendDirection.clone().rotate(spider.orientation), BEND_AMOUNT)
+        } else if (options.gait.straightenLegs) {
             val pivot = Quaternionf(options.gait.legChainPivotMode.get(spider))
 
             val direction = endEffector.clone().subtract(attachmentPosition)

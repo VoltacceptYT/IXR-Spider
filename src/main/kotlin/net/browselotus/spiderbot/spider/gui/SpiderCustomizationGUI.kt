@@ -2,7 +2,10 @@ package net.browselotus.spiderbot.spider.gui
 
 import net.browselotus.spiderbot.AppState
 import net.browselotus.spiderbot.spider.components.body.SpiderBody
+import net.browselotus.spiderbot.spider.configuration.CreatureType
 import net.browselotus.spiderbot.spider.configuration.SpiderOptions
+import net.browselotus.spiderbot.spider.presets.droid
+import net.browselotus.spiderbot.spider.presets.hexBot
 import net.browselotus.spiderbot.spider.saveSpiderOptions
 import net.browselotus.spiderbot.utilities.events.addEventListener
 import net.kyori.adventure.text.Component
@@ -20,7 +23,10 @@ import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.InventoryHolder
 import org.bukkit.inventory.ItemStack
 
-private const val MAIN_TITLE = "Customize Your Robo-Spider"
+private fun mainTitle(options: SpiderOptions) = when (options.creature) {
+    CreatureType.SPIDER -> "Customize Your Robo-Spider"
+    CreatureType.DROID -> "Customize Your Droid"
+}
 private const val BODY_COLOR_TITLE = "Body Color"
 private const val GLOW_COLOR_TITLE = "Eye / Glow Color"
 private const val INVENTORY_SIZE = 54
@@ -37,6 +43,7 @@ private const val SLOT_TITLE = 4
 private const val SLOT_SCALE_DOWN = 10
 private const val SLOT_SCALE_DISPLAY = 13
 private const val SLOT_SCALE_UP = 16
+private const val SLOT_CREATURE_BUTTON = 22
 private const val SLOT_BODY_COLOR_BUTTON = 30
 private const val SLOT_GLOW_COLOR_BUTTON = 32
 private const val SLOT_CLOSE = 49
@@ -85,6 +92,13 @@ private fun onMainMenuClick(player: Player, slot: Int, spider: SpiderBody, optio
         SLOT_SCALE_DOWN -> adjustScale(spider, options, -SCALE_STEP)
         SLOT_SCALE_UP -> adjustScale(spider, options, SCALE_STEP)
         SLOT_CLOSE -> { player.closeInventory(); return }
+        SLOT_CREATURE_BUTTON -> {
+            switchCreature(spider, options)
+            player.playSound(player.location, Sound.ITEM_ARMOR_EQUIP_NETHERITE, 0.7f, 1.2f)
+            saveSpiderOptions(player.uniqueId, options)
+            openSpiderCustomizationGUI(player) // reopen, since the window title depends on the creature
+            return
+        }
         SLOT_BODY_COLOR_BUTTON -> { openColorMenu(player, options, isBody = true); return }
         SLOT_GLOW_COLOR_BUTTON -> { openColorMenu(player, options, isBody = false); return }
         else -> return
@@ -120,7 +134,7 @@ fun openSpiderCustomizationGUI(player: Player) {
     val options = entity.query<SpiderOptions>() ?: return
 
     val holder = CustomizationHolder(Menu.MAIN)
-    val inventory = Bukkit.createInventory(holder, INVENTORY_SIZE, Component.text(MAIN_TITLE))
+    val inventory = Bukkit.createInventory(holder, INVENTORY_SIZE, Component.text(mainTitle(options)))
     holder.backing = inventory
 
     populateMain(inventory, options)
@@ -139,6 +153,32 @@ private fun openColorMenu(player: Player, options: SpiderOptions, isBody: Boolea
     player.openInventory(inventory)
 }
 
+/** Turns the player's companion into the other kind of creature, keeping their scale, colors and combat settings. */
+private fun switchCreature(spider: SpiderBody, options: SpiderOptions) {
+    val next = when (options.creature) {
+        CreatureType.SPIDER -> droid(2, 1.0)
+        CreatureType.DROID -> hexBot(4, 1.0)
+    }
+
+    val scale = options.bodyPlan.scale
+    if (scale != 1.0) {
+        next.walkGait.scale(scale)
+        next.gallopGait.scale(scale)
+        next.bodyPlan.scale(scale)
+    }
+    if (options.bodyPlan.bodyColor != next.bodyPlan.bodyColor) next.bodyPlan.setBodyColor(options.bodyPlan.bodyColor)
+    if (options.bodyPlan.glowColor != next.bodyPlan.glowColor) next.bodyPlan.setGlowColor(options.bodyPlan.glowColor)
+
+    // swap in the new body, but keep the cloak, attack and debug options the player may have tuned
+    options.creature = next.creature
+    options.walkGait = next.walkGait
+    options.gallopGait = next.gallopGait
+    options.bodyPlan = next.bodyPlan
+    options.sound = next.sound
+
+    spider.updateBodyPlan()
+}
+
 private fun adjustScale(spider: SpiderBody, options: SpiderOptions, delta: Double) {
     val oldScale = options.bodyPlan.scale
     val newScale = (oldScale + delta).coerceIn(SCALE_MIN, SCALE_MAX)
@@ -155,7 +195,7 @@ private fun populateMain(inventory: Inventory, options: SpiderOptions) {
     val filler = namedItem(Material.GRAY_STAINED_GLASS_PANE, " ")
     for (i in 0 until inventory.size) inventory.setItem(i, filler)
 
-    inventory.setItem(SLOT_TITLE, namedItem(Material.SPIDER_SPAWN_EGG, MAIN_TITLE, NamedTextColor.AQUA))
+    inventory.setItem(SLOT_TITLE, namedItem(Material.SPIDER_SPAWN_EGG, mainTitle(options), NamedTextColor.AQUA))
     inventory.setItem(SLOT_SCALE_DOWN, namedItem(Material.RED_DYE, "- Decrease Scale", NamedTextColor.RED))
     inventory.setItem(SLOT_SCALE_UP, namedItem(Material.LIME_DYE, "+ Increase Scale", NamedTextColor.GREEN))
     inventory.setItem(SLOT_CLOSE, namedItem(Material.BARRIER, "Close", NamedTextColor.RED))
@@ -165,6 +205,7 @@ private fun populateMain(inventory: Inventory, options: SpiderOptions) {
 
 private fun refreshMain(inventory: Inventory, options: SpiderOptions) {
     inventory.setItem(SLOT_SCALE_DISPLAY, createScaleDisplay(options.bodyPlan.scale))
+    inventory.setItem(SLOT_CREATURE_BUTTON, createCreatureButton(options.creature))
     inventory.setItem(SLOT_BODY_COLOR_BUTTON, createColorMenuButton(Material.PAINTING, "Body Color", NamedTextColor.GOLD, options.bodyPlan.bodyColor))
     inventory.setItem(SLOT_GLOW_COLOR_BUTTON, createColorMenuButton(Material.ENDER_EYE, "Eye / Glow Color", NamedTextColor.AQUA, options.bodyPlan.glowColor))
 }
@@ -195,6 +236,28 @@ private fun createScaleDisplay(scale: Double): ItemStack {
     val meta = item.itemMeta ?: return item
     meta.itemName(Component.text("Scale: ${"%.2f".format(scale)}x", NamedTextColor.YELLOW).decoration(TextDecoration.ITALIC, false))
     meta.lore(listOf(Component.text("Click the arrows to resize", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false)))
+    item.itemMeta = meta
+    return item
+}
+
+private fun createCreatureButton(creature: CreatureType): ItemStack {
+    val material = when (creature) {
+        CreatureType.SPIDER -> Material.SPIDER_SPAWN_EGG
+        CreatureType.DROID -> Material.IRON_GOLEM_SPAWN_EGG
+    }
+    val other = when (creature) {
+        CreatureType.SPIDER -> CreatureType.DROID
+        CreatureType.DROID -> CreatureType.SPIDER
+    }
+
+    val item = ItemStack(material)
+    val meta = item.itemMeta ?: return item
+
+    meta.itemName(Component.text("Creature", NamedTextColor.LIGHT_PURPLE).decoration(TextDecoration.ITALIC, false))
+    meta.lore(listOf(
+        Component.text("Currently: ${creature.displayName}", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false),
+        Component.text("Click to switch to ${other.displayName}", NamedTextColor.DARK_GRAY).decoration(TextDecoration.ITALIC, false),
+    ))
     item.itemMeta = meta
     return item
 }

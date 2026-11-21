@@ -21,7 +21,15 @@ class LegPlan(
     var attachmentPosition: Vector,
     var restPosition: Vector,
     var segments: List<SegmentPlan>,
-)
+) {
+    /**
+     * Body-relative direction (x = left, y = up, z = forward) that this leg's joints should poke out
+     * towards, e.g. forward for a humanoid's knees. When null the leg bends the way spider legs do
+     * (see Leg.update), which suits legs that splay out sideways but not ones that hang straight down.
+     * Legs with a bend direction are also drawn with an upright, roll-stable orientation.
+     */
+    var bendDirection: Vector? = null
+}
 
 class BodyPlan {
     var scale = 1.0

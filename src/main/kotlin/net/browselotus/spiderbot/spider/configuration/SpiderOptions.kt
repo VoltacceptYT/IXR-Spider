@@ -6,6 +6,9 @@ import org.bukkit.util.Vector
 import kotlin.random.Random
 
 class SpiderOptions : Component {
+    /** Which kind of creature this is: decides its projectile texture, muzzle position and sounds. */
+    var creature = CreatureType.SPIDER
+
     var walkGait = Gait.defaultWalk()
     var gallopGait = Gait.defaultGallop()
 
@@ -23,6 +26,7 @@ class SpiderOptions : Component {
     var attack = AttackOptions()
 
     fun copyFrom(other: SpiderOptions) {
+        creature = other.creature
         walkGait = other.walkGait
         gallopGait = other.gallopGait
         gallop = other.gallop

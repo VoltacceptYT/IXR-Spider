@@ -418,6 +418,7 @@ fun setupCommands(plugin: SpiderAnimationPlugin) {
             "quadbot" to ::quadBot,
             "hexbot" to ::hexBot,
             "octobot" to ::octoBot,
+            "droid" to ::droid,
         )
 
         setExecutor { sender, _, _, args ->

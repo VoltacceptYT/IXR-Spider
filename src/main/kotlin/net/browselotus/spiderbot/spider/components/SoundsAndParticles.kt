@@ -4,6 +4,7 @@ import net.browselotus.spiderbot.spider.components.body.Leg
 import net.browselotus.spiderbot.spider.components.body.LegStepEvent
 import net.browselotus.spiderbot.spider.components.body.SpiderBody
 import net.browselotus.spiderbot.spider.components.body.SpiderBodyHitGroundEvent
+import net.browselotus.spiderbot.spider.configuration.CreatureType
 import net.browselotus.spiderbot.spider.configuration.SoundPlayer
 import net.browselotus.spiderbot.spider.configuration.SpiderOptions
 import net.browselotus.spiderbot.utilities.ecs.Component
@@ -52,11 +53,13 @@ fun setupSoundAndParticles(app: ECS) {
     }
 
     app.onEvent<SpiderShootEvent> { event ->
-        event.spider.world.playSound(event.spider.position, Sound.ENTITY_SPIDER_HURT, .6f, 1.4f)
+        val creature = event.entity.query<SpiderOptions>()?.creature ?: CreatureType.SPIDER
+        event.spider.world.playSound(event.spider.position, creature.shootSound, creature.shootVolume, creature.shootPitch)
     }
 
     app.onEvent<SpiderProjectileHitEvent> { event ->
-        event.world.playSound(event.position, Sound.BLOCK_COBWEB_HIT, .6f, 1.0f)
+        val creature = event.creature
+        event.world.playSound(event.position, creature.hitSound, creature.hitVolume, creature.hitPitch)
     }
 
     app.onEvent<LegStepEvent> { event ->

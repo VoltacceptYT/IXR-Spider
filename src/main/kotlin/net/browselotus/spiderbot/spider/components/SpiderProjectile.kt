@@ -1,11 +1,13 @@
 package net.browselotus.spiderbot.spider.components
 
 import net.browselotus.spiderbot.spider.components.body.SpiderBody
+import net.browselotus.spiderbot.spider.configuration.CreatureType
 import net.browselotus.spiderbot.spider.configuration.SpiderOptions
 import net.browselotus.spiderbot.utilities.ecs.Component
 import net.browselotus.spiderbot.utilities.ecs.ECS
 import net.browselotus.spiderbot.utilities.ecs.ECSEntity
 import net.browselotus.spiderbot.utilities.maths.FORWARD_VECTOR
+import net.browselotus.spiderbot.utilities.maths.rotate
 import net.browselotus.spiderbot.utilities.resolveCollision
 import net.browselotus.spiderbot.utilities.rendering.interpolateTransform
 import net.browselotus.spiderbot.utilities.rendering.renderItem
@@ -25,24 +27,28 @@ import org.joml.Matrix4f
 import org.joml.Quaternionf
 import java.util.UUID
 
-/** The custom player head skin used for the spider's fired projectile. */
-private const val SPIDER_SHOT_HEAD_TEXTURE =
-    "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZmI1ODY0MWU3NmRhODI2MjE3MDhhM2Q2YzEwYmI0NTBjMjNkNDc1ZTUyMTAzMTBkMGI4N2U0NjBhNWZjMjM1NCJ9fX0="
-
-fun createSpiderShotHeadItem(): ItemStack {
+/** Builds the player head (with the given base64 skin texture) that is rendered as a creature's projectile. */
+fun createShotHeadItem(texture: String, profileName: String = "shot"): ItemStack {
     val item = ItemStack(Material.PLAYER_HEAD)
     val meta = item.itemMeta as SkullMeta
 
-    val profile = Bukkit.createProfile(UUID.randomUUID(), "spider_shot")
-    profile.setProperty(ProfileProperty("textures", SPIDER_SHOT_HEAD_TEXTURE))
+    val profile = Bukkit.createProfile(UUID.randomUUID(), profileName)
+    profile.setProperty(ProfileProperty("textures", texture))
     meta.playerProfile = profile
 
     item.itemMeta = meta
     return item
 }
 
+fun createSpiderShotHeadItem(): ItemStack = createShotHeadItem(CreatureType.SPIDER.shotTexture, "spider_shot")
+
 /** Fired when a [SpiderProjectile] stops, whether it hit [target] or just hit a block (target will still be its intended one). */
-class SpiderProjectileHitEvent(val world: World, val position: Vector, val target: LivingEntity)
+class SpiderProjectileHitEvent(
+    val world: World,
+    val position: Vector,
+    val target: LivingEntity,
+    val creature: CreatureType = CreatureType.SPIDER,
+)
 
 class SpiderProjectile(
     val world: World,
@@ -54,6 +60,8 @@ class SpiderProjectile(
     val slownessAmplifier: Int,
     val maxAgeTicks: Int,
     val scale: Double,
+    /** Who fired this, which decides what the projectile looks like. */
+    val creature: CreatureType = CreatureType.SPIDER,
 ) : Component {
     var age = 0
     var previousPosition: Vector = position.clone()
@@ -64,9 +72,9 @@ fun fireSpiderProjectile(app: ECS, entity: ECSEntity, spider: SpiderBody, option
     val config = options.attack
     val scale = options.bodyPlan.scale
 
+    // the muzzle sits at a fixed spot on the body, so it follows the body's orientation
     val muzzle = spider.position.clone()
-        .add(Vector(0.0, 0.3, 0.0).multiply(scale))
-        .add(spider.forwardDirection().multiply(0.6 * scale))
+        .add(options.creature.muzzleOffset.multiply(scale).rotate(spider.orientation))
 
     val direction = target.eyeLocation.toVector().subtract(muzzle)
     if (direction.lengthSquared() < 1e-6) return
@@ -83,6 +91,7 @@ fun fireSpiderProjectile(app: ECS, entity: ECSEntity, spider: SpiderBody, option
             slownessAmplifier = config.slownessAmplifier,
             maxAgeTicks = config.projectileLifetimeTicks,
             scale = scale,
+            creature = options.creature,
         )
     )
 
@@ -102,7 +111,7 @@ fun setupSpiderProjectiles(app: ECS) {
             // Stop at blocks instead of flying through walls.
             val blockCollision = projectile.world.resolveCollision(projectile.position, delta.clone())
             if (blockCollision != null) {
-                app.emit(SpiderProjectileHitEvent(world = projectile.world, position = blockCollision.position, target = projectile.target))
+                app.emit(SpiderProjectileHitEvent(world = projectile.world, position = blockCollision.position, target = projectile.target, creature = projectile.creature))
                 entity.remove()
                 continue
             }
@@ -121,7 +130,7 @@ fun setupSpiderProjectiles(app: ECS) {
                     target.addPotionEffect(
                         PotionEffect(PotionEffectType.SLOWNESS, projectile.slownessDurationTicks, projectile.slownessAmplifier, false, true)
                     )
-                    app.emit(SpiderProjectileHitEvent(world = projectile.world, position = projectile.position.clone(), target = target))
+                    app.emit(SpiderProjectileHitEvent(world = projectile.world, position = projectile.position.clone(), target = target, creature = projectile.creature))
                     entity.remove()
                     continue
                 }
@@ -142,7 +151,7 @@ fun setupSpiderProjectiles(app: ECS) {
             renderItem(
                 location = projectile.position.toLocation(projectile.world),
                 init = {
-                    it.setItemStack(createSpiderShotHeadItem())
+                    it.setItemStack(createShotHeadItem(projectile.creature.shotTexture, "${projectile.creature.name.lowercase()}_shot"))
                     it.itemDisplayTransform = ItemDisplay.ItemDisplayTransform.HEAD
                     it.billboard = Display.Billboard.FIXED
                     it.setGravity(false)

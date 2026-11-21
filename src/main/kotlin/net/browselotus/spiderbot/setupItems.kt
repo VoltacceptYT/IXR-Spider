@@ -6,7 +6,9 @@ import net.browselotus.spiderbot.spider.components.body.SpiderBody
 import net.browselotus.spiderbot.spider.components.Cloak
 import net.browselotus.spiderbot.spider.components.PointDetector
 import net.browselotus.spiderbot.spider.components.rendering.SpiderRenderer
+import net.browselotus.spiderbot.spider.configuration.CreatureType
 import net.browselotus.spiderbot.spider.configuration.SpiderOptions
+import net.browselotus.spiderbot.spider.presets.droid
 import net.browselotus.spiderbot.spider.presets.hexBot
 import net.browselotus.spiderbot.spider.gui.openSpiderCustomizationGUI
 import net.browselotus.spiderbot.laser.LaserPoint
@@ -40,37 +42,8 @@ import kotlin.math.roundToInt
 
 
 fun setupItems() {
-    val spiderComponent = CustomItemComponent("spider")
-    customItemRegistry += { createNamedItem(Material.NETHERITE_INGOT, "Spider").attach(spiderComponent) }
-    spiderComponent.onGestureUse { player, item ->
-        val storedUuid = item.spiderUUID
-		val existing = if (storedUuid == null) null else AppState.findSpiderByUUID(storedUuid)
-		if (existing != null) {
-			player.world.playSound(player.position, Sound.ENTITY_ITEM_FRAME_REMOVE_ITEM, 1.0f, 0.0f)
-
-			item.spiderOptions = existing.query<SpiderOptions>()
-
-			existing.remove()
-			item.spiderUUID = null
-			player.sendActionBar(Component.text("Spider removed"))
-		} else {
-			val yawIncrements = 45.0f
-			val yaw = (player.yaw / yawIncrements).roundToInt() * yawIncrements
-
-			val hitPosition = player.world.raycastGround(player.eyePosition, player.direction, 100.0)?.hitPosition ?: return@onGestureUse
-
-			player.world.playSound(hitPosition, Sound.BLOCK_NETHERITE_BLOCK_PLACE, 1.0f, 1.0f)
-
-			val options = item.spiderOptions ?: hexBot(4, 1.0)
-			val entity = AppState.createSpider(hitPosition.toLocation(player.world).apply { this.yaw = yaw }, options)
-			val spider = entity.query<SpiderBody>() ?: return@onGestureUse
-			item.spiderUUID = spider.uuid
-
-			player.sendActionBar(Component.text("Spider created"))
-		}
-
-    }
-
+    registerCreatureItem(CreatureType.SPIDER, Material.NETHERITE_INGOT) { hexBot(4, 1.0) }
+    registerCreatureItem(CreatureType.DROID, Material.IRON_INGOT) { droid(2, 1.0) }
 
     val disableLegComponent = CustomItemComponent("disableLeg")
     customItemRegistry += { createNamedItem(Material.SHEARS, "Toggle Leg").attach(disableLegComponent) }
@@ -230,6 +203,44 @@ fun setupItems() {
     ecs.onTick {
         ecs.query<ECSEntity,LaserPointExpire>().forEach { (entity, expire) ->
             if (expire.expired) entity.remove()
+        }
+    }
+}
+
+/**
+ * Registers the item that places and removes a creature of the given [type]: use it on the ground to
+ * spawn one, use it again to pick that creature back up (keeping its customization).
+ */
+private fun registerCreatureItem(type: CreatureType, material: Material, defaultOptions: () -> SpiderOptions) {
+    // the spider item has always been called "spider", so existing items keep working
+    val component = CustomItemComponent(type.name.lowercase())
+    customItemRegistry += { createNamedItem(material, type.displayName).attach(component) }
+
+    component.onGestureUse { player, item ->
+        val storedUuid = item.spiderUUID
+        val existing = if (storedUuid == null) null else AppState.findSpiderByUUID(storedUuid)
+        if (existing != null) {
+            player.world.playSound(player.position, Sound.ENTITY_ITEM_FRAME_REMOVE_ITEM, 1.0f, 0.0f)
+
+            item.spiderOptions = existing.query<SpiderOptions>()
+
+            existing.remove()
+            item.spiderUUID = null
+            player.sendActionBar(Component.text("${type.displayName} removed"))
+        } else {
+            val yawIncrements = 45.0f
+            val yaw = (player.yaw / yawIncrements).roundToInt() * yawIncrements
+
+            val hitPosition = player.world.raycastGround(player.eyePosition, player.direction, 100.0)?.hitPosition ?: return@onGestureUse
+
+            player.world.playSound(hitPosition, Sound.BLOCK_NETHERITE_BLOCK_PLACE, 1.0f, 1.0f)
+
+            val options = item.spiderOptions ?: defaultOptions()
+            val entity = AppState.createSpider(hitPosition.toLocation(player.world).apply { this.yaw = yaw }, options)
+            val spider = entity.query<SpiderBody>() ?: return@onGestureUse
+            item.spiderUUID = spider.uuid
+
+            player.sendActionBar(Component.text("${type.displayName} created"))
         }
     }
 }

@@ -22,9 +22,18 @@ fun renderSpider(spider: SpiderBody, cloak: Cloak, options: SpiderOptions): Rend
     for ((legIndex, leg) in spider.legs.withIndex()) {
         val chain = leg.chain
 
-        val pivot = options.gait.legChainPivotMode.get(spider)
-        for ((segmentIndex, rotation) in chain.getRotations(pivot).withIndex()) {
-            val segmentPlan = options.bodyPlan.legs.getOrNull(legIndex)?.segments?.getOrNull(segmentIndex) ?: continue
+        val legPlan = options.bodyPlan.legs.getOrNull(legIndex)
+
+        // upright limbs (e.g. a droid's legs) are drawn facing the body's heading, which stays
+        // stable even when the limb points straight down; spider legs keep the yaw/pitch frame
+        val rotations = if (legPlan?.bendDirection != null) {
+            chain.getRotationsFacing(spider.forwardDirection().toVector3f())
+        } else {
+            chain.getRotations(options.gait.legChainPivotMode.get(spider))
+        }
+
+        for ((segmentIndex, rotation) in rotations.withIndex()) {
+            val segmentPlan = legPlan?.segments?.getOrNull(segmentIndex) ?: continue
 
             val parent = chain.segments.getOrNull(segmentIndex - 1)?.position ?: chain.root
 
