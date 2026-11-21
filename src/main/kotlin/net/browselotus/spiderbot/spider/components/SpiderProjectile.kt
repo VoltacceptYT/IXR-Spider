@@ -3,6 +3,7 @@ package net.browselotus.spiderbot.spider.components
 import net.browselotus.spiderbot.spider.components.body.SpiderBody
 import net.browselotus.spiderbot.spider.configuration.CreatureType
 import net.browselotus.spiderbot.spider.configuration.SpiderOptions
+import net.browselotus.spiderbot.spider.configuration.beamSplitterActive
 import net.browselotus.spiderbot.spider.configuration.capabilities
 import net.browselotus.spiderbot.utilities.ecs.Component
 import net.browselotus.spiderbot.utilities.ecs.ECS
@@ -107,7 +108,7 @@ fun fireSpiderProjectile(app: ECS, entity: ECSEntity, spider: SpiderBody, option
         direction.add(Vector(Random.nextDouble(-spread, spread), Random.nextDouble(-spread, spread), Random.nextDouble(-spread, spread))).normalize()
     }
 
-    if (options.upgrades.beamSplitter) {
+    if (options.beamSplitterActive()) {
         // beam splitter: three smaller lasers fanned out like a shotgun blast
         val fan = listOf(-BEAM_SPLIT_ANGLE, 0.0, BEAM_SPLIT_ANGLE)
         for (angle in fan) {

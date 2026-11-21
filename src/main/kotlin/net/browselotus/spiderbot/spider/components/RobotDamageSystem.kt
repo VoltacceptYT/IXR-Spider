@@ -76,12 +76,11 @@ fun hurtRobot(app: ECS, entity: ECSEntity, point: Vector, rawDamage: Double, sca
     val world = entity.query<SpiderBody>()?.world ?: return
     val scaled = if (scaleWithDifficulty) difficultyScaled(rawDamage, world) else rawDamage
     if (scaled <= 0.0) return
-    val options = entity.query<SpiderOptions>() ?: return
-    damageRobot(app, entity, point, damageAgainstFullDiamond(scaled) / maxPartHp(options))
+    damageRobot(app, entity, point, damageAgainstFullDiamond(scaled))
 }
 
-/** Hit points of each component: the base [PART_MAX_HP] plus whatever the equipped plating adds. */
-fun maxPartHp(options: SpiderOptions): Double = PART_MAX_HP + options.upgrades.bonusHp
+/** Hit points of a component: the base [PART_MAX_HP] plus whatever the plating in its slots adds. */
+fun maxPartHp(options: SpiderOptions, partId: String): Double = PART_MAX_HP + options.upgrades.bonusHp(partId)
 
 /** Self-healing nanoparticles mend every component by this many hit points per second. */
 const val NANO_HEAL_HP_PER_SECOND = 0.5
@@ -216,7 +215,8 @@ private fun notifyOwner(entity: ECSEntity, message: String, color: NamedTextColo
     owner.sendActionBar(Text.text(message, color))
 }
 
-fun damageRobot(app: ECS, entity: ECSEntity, point: Vector, amount: Double) {
+/** Hurts the component nearest [point] by [hpDamage] hit points (already reduced by armor). */
+fun damageRobot(app: ECS, entity: ECSEntity, point: Vector, hpDamage: Double) {
     val spider = entity.query<SpiderBody>() ?: return
     val options = entity.query<SpiderOptions>() ?: return
 
@@ -228,7 +228,7 @@ fun damageRobot(app: ECS, entity: ECSEntity, point: Vector, amount: Double) {
     spider.world.spawnParticle(Particle.ELECTRIC_SPARK, at, 12, 0.1, 0.1, 0.1, 0.08)
     spider.world.playSound(at, Sound.ENTITY_IRON_GOLEM_DAMAGE, 0.8f, 1.2f)
 
-    val after = (options.damage.of(spec.id) - amount).coerceAtLeast(0.0)
+    val after = (options.damage.of(spec.id) - hpDamage / maxPartHp(options, spec.id)).coerceAtLeast(0.0)
     options.damage.set(spec.id, after)
 
     if (after <= 0.0 && spec.detachable) {
@@ -276,14 +276,15 @@ fun setupRobotDamage(app: ECS) {
         }
     }
 
-    // self-healing nanoparticles: 0.5 hit points per second on every component that is damaged but not knocked off
+    // self-healing nanoparticles: 0.5 hit points per second on each component that has them installed,
+    // as long as it is damaged but not knocked off
     app.onTick {
         for (options in app.query<SpiderOptions>()) {
-            if (!options.upgrades.selfHealing) continue
-            val perTick = NANO_HEAL_HP_PER_SECOND / 20.0 / maxPartHp(options)
             for (spec in options.partSpecs()) {
+                if (!options.upgrades.selfHealing(spec.id)) continue
                 val health = options.damage.of(spec.id)
                 if (health <= 0.0 || health >= 1.0) continue
+                val perTick = NANO_HEAL_HP_PER_SECOND / 20.0 / maxPartHp(options, spec.id)
                 options.damage.set(spec.id, (health + perTick).coerceAtMost(1.0))
             }
         }

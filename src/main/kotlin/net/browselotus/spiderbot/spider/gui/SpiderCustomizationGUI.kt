@@ -7,6 +7,7 @@ import net.browselotus.spiderbot.spider.configuration.SpiderOptions
 import net.browselotus.spiderbot.spider.presets.droid
 import net.browselotus.spiderbot.spider.presets.hexBot
 import net.browselotus.spiderbot.spider.saveSpiderOptions
+import net.browselotus.spiderbot.spider.giveUpgradeModuleItem
 import net.browselotus.spiderbot.utilities.events.addEventListener
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
@@ -101,6 +102,8 @@ private fun onMainMenuClick(player: Player, slot: Int, spider: SpiderBody, optio
                 player.sendActionBar(Component.text("Repair all damage before swapping chassis", NamedTextColor.RED))
                 return
             }
+            // the new chassis has different components, so modules come back to the player first
+            for (module in options.upgrades.removeAll()) giveUpgradeModuleItem(player, module)
             switchCreature(spider, options)
             player.playSound(player.location, Sound.ITEM_ARMOR_EQUIP_NETHERITE, 0.7f, 1.2f)
             saveSpiderOptions(player.uniqueId, options)
@@ -266,12 +269,12 @@ private fun createStatusButton(options: SpiderOptions): ItemStack {
 private fun createModulesButton(options: SpiderOptions): ItemStack {
     val item = ItemStack(Material.SMITHING_TABLE)
     val meta = item.itemMeta ?: return item
-    val count = options.upgrades.installed.size
+    val count = options.upgrades.count()
 
     meta.itemName(Component.text("Upgrade Modules", NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false))
     meta.lore(listOf(
         Component.text("$count installed", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false),
-        Component.text("Click to install or uninstall", NamedTextColor.DARK_GRAY).decoration(TextDecoration.ITALIC, false),
+        Component.text("Drag modules into component slots", NamedTextColor.DARK_GRAY).decoration(TextDecoration.ITALIC, false),
     ))
     item.itemMeta = meta
     return item

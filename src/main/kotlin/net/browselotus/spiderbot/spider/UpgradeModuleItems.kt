@@ -24,7 +24,7 @@ fun createUpgradeModuleItem(module: UpgradeModule): ItemStack {
         line(Component.text("Upgrade Module", NamedTextColor.DARK_GRAY)),
         line(Component.text(module.description, NamedTextColor.GRAY)),
         Component.empty(),
-        line(Component.text("Install it from the Mk9 Configurator", NamedTextColor.YELLOW)),
+        line(Component.text("Drag it into a component slot in the Mk9 Configurator", NamedTextColor.YELLOW)),
     ))
     meta.persistentDataContainer.set(MODULE_KEY, PersistentDataType.STRING, module.name)
     item.itemMeta = meta
@@ -34,4 +34,10 @@ fun createUpgradeModuleItem(module: UpgradeModule): ItemStack {
 fun ItemStack.upgradeModule(): UpgradeModule? {
     val id = itemMeta?.persistentDataContainer?.get(MODULE_KEY, PersistentDataType.STRING) ?: return null
     return UpgradeModule.entries.find { it.name == id }
+}
+
+/** Puts a module item in the player's inventory, dropping it at their feet if there is no room. */
+fun giveUpgradeModuleItem(player: org.bukkit.entity.Player, module: UpgradeModule) {
+    val leftovers = player.inventory.addItem(createUpgradeModuleItem(module))
+    for (left in leftovers.values) player.world.dropItemNaturally(player.location, left)
 }

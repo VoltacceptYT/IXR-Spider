@@ -5,7 +5,6 @@ import net.browselotus.spiderbot.spider.configuration.CreatureType
 import net.browselotus.spiderbot.spider.configuration.PartRole
 import net.browselotus.spiderbot.spider.configuration.PartSpec
 import net.browselotus.spiderbot.spider.configuration.SpiderOptions
-import net.browselotus.spiderbot.spider.configuration.UpgradeModule
 import net.browselotus.spiderbot.spider.configuration.capabilities
 import net.browselotus.spiderbot.spider.configuration.efficiency
 import net.browselotus.spiderbot.spider.configuration.partSpecs
@@ -172,7 +171,7 @@ private fun populate(inventory: Inventory, options: SpiderOptions) {
     val slots = layout(options)
     for (spec in options.partSpecs()) {
         val slot = slots[spec.id] ?: continue
-        inventory.setItem(slot, partItem(spec, options.damage.of(spec.id), maxPartHp(options)))
+        inventory.setItem(slot, partItem(spec, options.damage.of(spec.id), maxPartHp(options, spec.id)))
     }
 }
 
@@ -270,9 +269,14 @@ private fun overviewItem(options: SpiderOptions): ItemStack {
 }
 
 private fun moduleLines(options: SpiderOptions): List<Component> {
-    val installed = UpgradeModule.entries.filter { options.upgrades.has(it) }
-    if (installed.isEmpty()) return listOf(line(Component.text("None installed (try /wheel)", NamedTextColor.DARK_GRAY)))
-    return installed.map { line(Component.text("- ${it.displayName}", it.color)) }
+    val lines = options.partSpecs().mapNotNull { spec ->
+        val modules = options.upgrades.modulesOn(spec.id)
+        if (modules.isEmpty()) null
+        else line(Component.text("${spec.label}: ", NamedTextColor.GRAY)
+            .append(Component.text(modules.joinToString(", ") { it.displayName }, NamedTextColor.WHITE)))
+    }
+    if (lines.isEmpty()) return listOf(line(Component.text("None installed (try /wheel)", NamedTextColor.DARK_GRAY)))
+    return lines
 }
 
 private fun helpItem(): ItemStack {
