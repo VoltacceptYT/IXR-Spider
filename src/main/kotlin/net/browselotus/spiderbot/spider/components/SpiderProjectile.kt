@@ -69,6 +69,8 @@ class SpiderProjectile(
     val scale: Double,
     /** Who fired this, which decides what the projectile looks like. */
     val creature: CreatureType = CreatureType.SPIDER,
+    /** The robot that fired this, so whatever it hits can hit back. */
+    val shooter: ECSEntity? = null,
 ) : Component {
     var age = 0
     var previousPosition: Vector = position.clone()
@@ -106,6 +108,7 @@ fun fireSpiderProjectile(app: ECS, entity: ECSEntity, spider: SpiderBody, option
             maxAgeTicks = config.projectileLifetimeTicks,
             scale = scale,
             creature = options.creature,
+            shooter = entity,
         )
     )
 
@@ -177,6 +180,7 @@ fun setupSpiderProjectiles(app: ECS) {
                 val hit = hitBox.rayTrace(projectile.previousPosition, delta.clone().normalize(), delta.length())
                 if (hit != null) {
                     target.damage(projectile.damage)
+                    projectile.shooter?.let { provokeMob(it, target) }
                     if (projectile.creature == CreatureType.DROID) laserImpactEffect(projectile.world, projectile.position, projectile.position)
                     target.addPotionEffect(
                         PotionEffect(PotionEffectType.SLOWNESS, projectile.slownessDurationTicks, projectile.slownessAmplifier, false, true)

@@ -27,6 +27,7 @@ import org.bukkit.block.data.BlockData
 import org.bukkit.entity.AbstractArrow
 import org.bukkit.entity.Display
 import org.bukkit.entity.Fireball
+import org.bukkit.entity.LivingEntity
 import org.bukkit.entity.Player
 import org.bukkit.entity.Projectile
 import org.bukkit.entity.ShulkerBullet
@@ -222,6 +223,7 @@ fun setupRobotDamage(app: ECS) {
                 if (nearby.velocity.length() < 0.8) continue
 
                 damageRobot(app, entity, nearby.location.toVector(), amount)
+                (shooter as? LivingEntity)?.let { provokeRobot(entity, it) }
                 nearby.remove()
             }
         }

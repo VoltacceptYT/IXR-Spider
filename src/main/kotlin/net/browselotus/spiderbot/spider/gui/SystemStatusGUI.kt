@@ -201,8 +201,8 @@ private fun partItem(spec: PartSpec, health: Double): ItemStack {
     val lore = mutableListOf<Component>()
     lore += line(
         Component.text("Integrity: ", NamedTextColor.GRAY)
-            .append(Component.text("|".repeat(filled), status.color))
-            .append(Component.text("|".repeat(10 - filled), NamedTextColor.DARK_GRAY))
+            .append(Component.text("█".repeat(filled), status.color))
+            .append(Component.text("█".repeat(10 - filled), NamedTextColor.DARK_RED))
             .append(Component.text(" $percent%", NamedTextColor.WHITE))
     )
     lore += line(

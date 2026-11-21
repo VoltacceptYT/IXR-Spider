@@ -41,6 +41,7 @@ fun setupSpider(app: ECS) {
     setupCloak(app)
     setupMountable(app)
     setupRobotDamage(app)
+    setupMobAggro(app)
     setupPointDetector(app)
     setupSoundAndParticles(app)
     setupTridentHitDetector(app)
