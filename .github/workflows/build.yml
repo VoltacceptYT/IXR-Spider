@@ -14,13 +14,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # build.gradle.kts requires jvmToolchain(25); no toolchain
+      # build.gradle.kts requires jvmToolchain(21); no toolchain
       # auto-provisioning plugin is configured, so we install it ourselves.
-      - name: Set up JDK 25
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '25'
+          java-version: '21'
 
       # This repo ships gradle/wrapper/gradle-wrapper.properties but not the
       # gradlew script/jar, so we can't run ./gradlew. This action installs

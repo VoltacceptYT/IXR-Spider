@@ -10,15 +10,24 @@ repositories {
 }
 
 dependencies {
-    compileOnly("io.papermc.paper:paper-api:26.2.build.+")
+    compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
 }
 
 kotlin {
-    jvmToolchain(25)
+    jvmToolchain(21)
 }
 
 tasks {
+    // The plain jar has no Kotlin stdlib (causes NoClassDefFoundError); only ship the shaded one.
+    jar {
+        enabled = false
+    }
+
+    shadowJar {
+        archiveClassifier.set("")
+    }
+
     build {
         dependsOn(shadowJar)
     }
@@ -27,7 +36,7 @@ tasks {
         // Configure the Minecraft version for our task.
         // This is the only required configuration besides applying the plugin.
         // Your plugin's jar (or shadowJar if present) will be used automatically.
-        minecraftVersion("26.2")
+        minecraftVersion("1.21.11")
         jvmArgs("-Xms2G", "-Xmx2G")
     }
 
