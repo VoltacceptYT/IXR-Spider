@@ -27,6 +27,8 @@ class SpiderOptions : Component {
 
     var damage = RobotDamage()
 
+    var upgrades = RobotUpgrades()
+
     fun copyFrom(other: SpiderOptions) {
         creature = other.creature
         walkGait = other.walkGait
@@ -38,6 +40,7 @@ class SpiderOptions : Component {
         sound = other.sound
         attack = other.attack
         damage = other.damage
+        upgrades = other.upgrades
     }
 
 //    fun scale(scale: Double) {

@@ -5,77 +5,19 @@ api-version: '1.21'
 
 commands:
   items:
-    description: Open the items menu
+    description: Open the items menu (Robot Configuration tool)
     permission: spiderbot.items
-  options:
-    description: Set gait options
-    permission: spiderbot.options
-  fall:
-    description: Teleport the spider up by the specified height
-    permission: spiderbot.fall
-  preset:
-    description: Apply a preset
-    permission: spiderbot.preset
-  scale:
-    description: Scale the spider
-    permission: spiderbot.scale
-  modify_model:
-    description: Modify model
-    permission: spiderbot.modify_model
-  torso_model:
-    description: Set the torso model of the spider
-    permission: spiderbot.body_model
-  leg_model:
-    description: Set the leg model of the spider
-    permission: spiderbot.leg_model
-  animated_palette:
-    description: Modify animated palette
-    permission: spiderbot.animated_palette
-  set_sound:
-    description: Set the sound of the spider
-    permission: spiderbot.set_sound
-  splay:
-    description: Splay
-    permission: spiderbot.splay
-  status:
-    description: Open the robot system status page
-    aliases: [robostatus]
-    permission: spiderbot.status
+  wheel:
+    description: Spin the wheel for an item of value or an upgrade module
+    permission: spiderbot.wheel
 
 permissions:
   spiderbot.items:
     description: Allows access to the items command
-    default: op
-  spiderbot.options:
-    description: Allows access to the options command
-    default: op
-  spiderbot.fall:
-    description: Allows access to the fall command
-    default: op
-  spiderbot.preset:
-    description: Allows access to the preset command
-    default: op
-  spiderbot.scale:
-    description: Allows access to the scale command
-    default: op
-  spiderbot.modify_model:
-    description: Allows access to the modify_model command
-    default: op
-  spiderbot.torso_model:
-    description: Allows access to the torso_model command
-    default: op
-  spiderbot.leg_model:
-    description: Allows access to the leg_model command
-    default: op
-  spiderbot.animated_palette:
-    description: Allows access to the animated_palette command
-    default: op
-  spiderbot.set_sound:
-    description: Allows access to the set_sound command
-    default: op
-  spiderbot.splay:
-    description: Allows access to the splay command
-    default: op
-  spiderbot.status:
-    description: Allows access to the status command
     default: true
+  spiderbot.wheel:
+    description: Allows spinning the wheel (once every 6 hours)
+    default: true
+  spiderbot.wheel.owner:
+    description: Owners can spin the wheel as often as they like
+    default: op

@@ -46,9 +46,6 @@ class AttackOptions {
     /** How long a mob keeps hunting the robot after the robot hits it, in ticks. */
     var mobRetaliateTicks = 400
 
-    /** Robot part damage (0..1 scale) per point of mob attack damage. A zombie (3 damage) does 0.15 per hit. */
-    var mobDamageScale = 0.05
-
     /** Ticks between a single mob's attacks on the robot. */
     var mobAttackCooldownTicks = 20
 }

@@ -65,6 +65,13 @@ private fun isRangedMob(mob: Mob) = mob is AbstractSkeleton || mob is Pillager |
 private fun attackDamageOf(mob: LivingEntity): Double =
     mob.getAttribute(Attribute.ATTACK_DAMAGE)?.value ?: 2.0
 
+/** Explosion power vanilla would use for this source. */
+private fun explosionPower(source: org.bukkit.entity.Entity?): Double = when (source) {
+    is Creeper -> if (source.isPowered) 6.0 else 3.0
+    is org.bukkit.entity.TNTPrimed -> 4.0
+    else -> 3.0
+}
+
 fun setupMobAggro(app: ECS) {
     // Explosions (creepers, TNT, ...) hurt robots caught in the blast.
     addEventListener(object : Listener {
@@ -74,11 +81,13 @@ fun setupMobAggro(app: ECS) {
             for ((entity, spider, options) in app.query<ECSEntity, SpiderBody, SpiderOptions>()) {
                 if (spider.world != at.world) continue
                 val distance = spider.position.distance(at.toVector())
-                val radius = 6.0 * options.bodyPlan.scale.coerceAtLeast(1.0)
+                val power = explosionPower(event.entity)
+                val radius = power * 2.0 + options.bodyPlan.scale.coerceAtLeast(1.0)
                 if (distance > radius) continue
 
-                val strength = 1.0 - distance / radius
-                damageRobot(app, entity, at.toVector(), 0.6 * strength + 0.1)
+                // vanilla explosion damage: ((i^2 + i) / 2) * 7 * power + 1, where i falls off with distance
+                val impact = (1.0 - distance / radius).coerceIn(0.0, 1.0)
+                hurtRobot(app, entity, at.toVector(), ((impact * impact + impact) / 2.0) * 7.0 * power + 1.0)
                 (event.entity as? LivingEntity)?.let { provokeRobot(entity, it) }
             }
         }
@@ -151,8 +160,7 @@ fun setupMobAggro(app: ECS) {
                     }
 
                     distance <= reach -> {
-                        val amount = attackDamageOf(mob) * config.mobDamageScale
-                        damageRobot(app, entity, at, amount)
+                        hurtRobot(app, entity, at, attackDamageOf(mob))
                         mob.swingMainHand()
                         provokeRobot(entity, mob)
                         aggro.attackCooldowns[mob.uniqueId] = config.mobAttackCooldownTicks

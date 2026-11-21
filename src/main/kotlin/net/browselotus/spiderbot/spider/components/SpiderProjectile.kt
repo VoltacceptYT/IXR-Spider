@@ -71,10 +71,21 @@ class SpiderProjectile(
     val creature: CreatureType = CreatureType.SPIDER,
     /** The robot that fired this, so whatever it hits can hit back. */
     val shooter: ECSEntity? = null,
+    /** Pellets from a beam splitter land together, so each one has to be able to hurt despite the target's hit immunity. */
+    val ignoreHitImmunity: Boolean = false,
 ) : Component {
     var age = 0
     var previousPosition: Vector = position.clone()
 }
+
+/** Beam splitter: how far (radians) the outer lasers fan out from the middle one. */
+private const val BEAM_SPLIT_ANGLE = 0.1
+/** Beam splitter: random wobble added to each laser, so the blast looks like a shotgun spread. */
+private const val BEAM_SPLIT_JITTER = 0.03
+/** Beam splitter: each of the three lasers is this big compared to a normal one. */
+private const val BEAM_SPLIT_SIZE_FACTOR = 0.6
+/** Beam splitter: each of the three lasers does this fraction of a normal laser's damage. */
+private const val BEAM_SPLIT_DAMAGE_FACTOR = 0.5
 
 /** Spawns and launches a projectile from [spider] towards [target], using [options].attack for its stats. */
 fun fireSpiderProjectile(app: ECS, entity: ECSEntity, spider: SpiderBody, options: SpiderOptions, target: LivingEntity) {
@@ -96,21 +107,51 @@ fun fireSpiderProjectile(app: ECS, entity: ECSEntity, spider: SpiderBody, option
         direction.add(Vector(Random.nextDouble(-spread, spread), Random.nextDouble(-spread, spread), Random.nextDouble(-spread, spread))).normalize()
     }
 
-    app.spawn(
-        SpiderProjectile(
-            world = spider.world,
-            position = muzzle,
-            velocity = direction.multiply(config.projectileSpeed),
-            target = target,
-            damage = config.damage,
-            slownessDurationTicks = config.slownessDurationTicks,
-            slownessAmplifier = config.slownessAmplifier,
-            maxAgeTicks = config.projectileLifetimeTicks,
-            scale = scale,
-            creature = options.creature,
-            shooter = entity,
+    if (options.upgrades.beamSplitter) {
+        // beam splitter: three smaller lasers fanned out like a shotgun blast
+        val fan = listOf(-BEAM_SPLIT_ANGLE, 0.0, BEAM_SPLIT_ANGLE)
+        for (angle in fan) {
+            val pellet = direction.clone().rotateAroundY(angle)
+            pellet.add(Vector(
+                Random.nextDouble(-BEAM_SPLIT_JITTER, BEAM_SPLIT_JITTER),
+                Random.nextDouble(-BEAM_SPLIT_JITTER, BEAM_SPLIT_JITTER),
+                Random.nextDouble(-BEAM_SPLIT_JITTER, BEAM_SPLIT_JITTER),
+            )).normalize()
+
+            app.spawn(
+                SpiderProjectile(
+                    world = spider.world,
+                    position = muzzle.clone(),
+                    velocity = pellet.multiply(config.projectileSpeed),
+                    target = target,
+                    damage = config.damage * BEAM_SPLIT_DAMAGE_FACTOR,
+                    slownessDurationTicks = config.slownessDurationTicks,
+                    slownessAmplifier = config.slownessAmplifier,
+                    maxAgeTicks = config.projectileLifetimeTicks,
+                    scale = scale * BEAM_SPLIT_SIZE_FACTOR,
+                    creature = options.creature,
+                    shooter = entity,
+                    ignoreHitImmunity = true,
+                )
+            )
+        }
+    } else {
+        app.spawn(
+            SpiderProjectile(
+                world = spider.world,
+                position = muzzle,
+                velocity = direction.multiply(config.projectileSpeed),
+                target = target,
+                damage = config.damage,
+                slownessDurationTicks = config.slownessDurationTicks,
+                slownessAmplifier = config.slownessAmplifier,
+                maxAgeTicks = config.projectileLifetimeTicks,
+                scale = scale,
+                creature = options.creature,
+                shooter = entity,
+            )
         )
-    )
+    }
 
     app.emit(SpiderShootEvent(entity = entity, spider = spider, target = target))
 }
@@ -179,6 +220,7 @@ fun setupSpiderProjectiles(app: ECS) {
                 val hitBox = target.boundingBox.clone().expand(0.3)
                 val hit = hitBox.rayTrace(projectile.previousPosition, delta.clone().normalize(), delta.length())
                 if (hit != null) {
+                    if (projectile.ignoreHitImmunity) target.noDamageTicks = 0
                     target.damage(projectile.damage)
                     projectile.shooter?.let { provokeMob(it, target) }
                     if (projectile.creature == CreatureType.DROID) laserImpactEffect(projectile.world, projectile.position, projectile.position)
@@ -223,7 +265,7 @@ fun setupSpiderProjectiles(app: ECS) {
                         it.interpolateTransform(
                             Matrix4f()
                                 .rotate(laserOrientation)
-                                .scale(0.25f * k, 0.75f * k, 0.25f * k)
+                                .scale(0.15f * k, 0.75f * k, 0.15f * k)
                                 .translate(-0.5f, -0.5f, -0.5f)
                         )
                     }

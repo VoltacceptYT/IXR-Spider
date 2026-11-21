@@ -19,6 +19,7 @@ import net.browselotus.spiderbot.utilities.rendering.renderBlock
 import net.kyori.adventure.text.Component as Text
 import net.kyori.adventure.text.format.NamedTextColor
 import org.bukkit.Bukkit
+import org.bukkit.Difficulty
 import org.bukkit.Material
 import org.bukkit.Particle
 import org.bukkit.Sound
@@ -27,6 +28,7 @@ import org.bukkit.block.data.BlockData
 import org.bukkit.entity.AbstractArrow
 import org.bukkit.entity.Display
 import org.bukkit.entity.Fireball
+import org.bukkit.entity.SmallFireball
 import org.bukkit.entity.LivingEntity
 import org.bukkit.entity.Player
 import org.bukkit.entity.Projectile
@@ -36,9 +38,53 @@ import org.bukkit.util.Vector
 import org.joml.Matrix4f
 import org.joml.Quaternionf
 import org.joml.Vector3f
+import kotlin.math.ceil
 import kotlin.random.Random
 
-const val TRIDENT_DAMAGE = 0.34
+/** Vanilla damage of a thrown trident. */
+const val TRIDENT_DAMAGE = 8.0
+
+/** Every robot part has 5 hearts. */
+const val PART_MAX_HP = 10.0
+
+private const val DIAMOND_ARMOR_POINTS = 20.0 // full diamond set: 3 + 6 + 8 + 3
+private const val DIAMOND_TOUGHNESS = 8.0     // 2 per piece
+
+/** Vanilla armor formula: the damage [rawDamage] deals to something wearing a full set of diamond armor. */
+fun damageAgainstFullDiamond(rawDamage: Double): Double {
+    val reduction = minOf(
+        20.0,
+        maxOf(DIAMOND_ARMOR_POINTS / 5.0, DIAMOND_ARMOR_POINTS - rawDamage / (2.0 + DIAMOND_TOUGHNESS / 4.0)),
+    ) / 25.0
+    return rawDamage * (1.0 - reduction)
+}
+
+/** Vanilla difficulty scaling for damage dealt by mobs: none on peaceful, softer on easy, harder on hard. */
+fun difficultyScaled(damage: Double, world: World): Double = when (world.difficulty) {
+    Difficulty.PEACEFUL -> 0.0
+    Difficulty.EASY -> minOf(damage / 2.0 + 1.0, damage)
+    Difficulty.NORMAL -> damage
+    Difficulty.HARD -> damage * 1.5
+}
+
+/**
+ * Hurts the robot part nearest [point] as if it were a player with 5 hearts in full diamond armor taking
+ * [rawDamage] (vanilla health points, before armor). The damage is scaled by the difficulty of the robot's
+ * world, like vanilla does for mob damage; pass [scaleWithDifficulty] = false for player-sourced damage.
+ */
+fun hurtRobot(app: ECS, entity: ECSEntity, point: Vector, rawDamage: Double, scaleWithDifficulty: Boolean = true) {
+    val world = entity.query<SpiderBody>()?.world ?: return
+    val scaled = if (scaleWithDifficulty) difficultyScaled(rawDamage, world) else rawDamage
+    if (scaled <= 0.0) return
+    val options = entity.query<SpiderOptions>() ?: return
+    damageRobot(app, entity, point, damageAgainstFullDiamond(scaled) / maxPartHp(options))
+}
+
+/** Hit points of each component: the base [PART_MAX_HP] plus whatever the equipped plating adds. */
+fun maxPartHp(options: SpiderOptions): Double = PART_MAX_HP + options.upgrades.bonusHp
+
+/** Self-healing nanoparticles mend every component by this many hit points per second. */
+const val NANO_HEAL_HP_PER_SECOND = 0.5
 
 class RobotDamageState : Component {
     val lastStatus = mutableMapOf<String, PartStatus>()
@@ -212,9 +258,10 @@ fun setupRobotDamage(app: ECS) {
             for (nearby in spider.world.getNearbyEntities(spider.location(), 1.4, 1.6, 1.4)) {
                 val amount = when (nearby) {
                     is Trident -> continue
-                    is Fireball -> 0.5
-                    is AbstractArrow -> 0.15
-                    is ShulkerBullet -> 0.2
+                    is SmallFireball -> 5.0   // blaze fireball, vanilla direct hit
+                    is Fireball -> 6.0        // ghast fireball, vanilla direct hit
+                    is AbstractArrow -> ceil(nearby.velocity.length() * nearby.damage).coerceAtLeast(1.0)
+                    is ShulkerBullet -> 4.0
                     else -> continue
                 }
 
@@ -222,9 +269,22 @@ fun setupRobotDamage(app: ECS) {
                 if (shooter is Player && (shooter.uniqueId == ownerId || shooter == rider)) continue
                 if (nearby.velocity.length() < 0.8) continue
 
-                damageRobot(app, entity, nearby.location.toVector(), amount)
+                hurtRobot(app, entity, nearby.location.toVector(), amount)
                 (shooter as? LivingEntity)?.let { provokeRobot(entity, it) }
                 nearby.remove()
+            }
+        }
+    }
+
+    // self-healing nanoparticles: 0.5 hit points per second on every component that is damaged but not knocked off
+    app.onTick {
+        for (options in app.query<SpiderOptions>()) {
+            if (!options.upgrades.selfHealing) continue
+            val perTick = NANO_HEAL_HP_PER_SECOND / 20.0 / maxPartHp(options)
+            for (spec in options.partSpecs()) {
+                val health = options.damage.of(spec.id)
+                if (health <= 0.0 || health >= 1.0) continue
+                options.damage.set(spec.id, (health + perTick).coerceAtMost(1.0))
             }
         }
     }

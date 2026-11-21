@@ -5,10 +5,12 @@ import net.browselotus.spiderbot.spider.configuration.CreatureType
 import net.browselotus.spiderbot.spider.configuration.PartRole
 import net.browselotus.spiderbot.spider.configuration.PartSpec
 import net.browselotus.spiderbot.spider.configuration.SpiderOptions
+import net.browselotus.spiderbot.spider.configuration.UpgradeModule
 import net.browselotus.spiderbot.spider.configuration.capabilities
 import net.browselotus.spiderbot.spider.configuration.efficiency
 import net.browselotus.spiderbot.spider.configuration.partSpecs
 import net.browselotus.spiderbot.spider.configuration.statusOf
+import net.browselotus.spiderbot.spider.components.maxPartHp
 import net.browselotus.spiderbot.spider.saveSpiderOptions
 import net.browselotus.spiderbot.utilities.events.addEventListener
 import net.browselotus.spiderbot.utilities.events.interval
@@ -170,11 +172,11 @@ private fun populate(inventory: Inventory, options: SpiderOptions) {
     val slots = layout(options)
     for (spec in options.partSpecs()) {
         val slot = slots[spec.id] ?: continue
-        inventory.setItem(slot, partItem(spec, options.damage.of(spec.id)))
+        inventory.setItem(slot, partItem(spec, options.damage.of(spec.id), maxPartHp(options)))
     }
 }
 
-private fun partItem(spec: PartSpec, health: Double): ItemStack {
+private fun partItem(spec: PartSpec, health: Double, maxHp: Double): ItemStack {
     val status = statusOf(health)
     val detached = health <= 0.0 && spec.detachable
 
@@ -205,6 +207,7 @@ private fun partItem(spec: PartSpec, health: Double): ItemStack {
             .append(Component.text("█".repeat(10 - filled), NamedTextColor.DARK_GRAY))
             .append(Component.text(" $percent%", NamedTextColor.WHITE))
     )
+    lore += line(Component.text("Hit points: ${"%.1f".format(health * maxHp)} / ${"%.0f".format(maxHp)}", NamedTextColor.GRAY))
     lore += line(
         Component.text("Status: ", NamedTextColor.GRAY)
             .append(Component.text(if (detached) "KNOCKED OFF" else if (health <= 0.0) "OFFLINE" else status.label, status.color))
@@ -258,10 +261,18 @@ private fun overviewItem(options: SpiderOptions): ItemStack {
         line(Component.text("Firepower: ${pct(caps.firepower)}", NamedTextColor.GRAY)),
         line(Component.text("Sensors: ${pct(caps.sensors)}", NamedTextColor.GRAY)),
         line(Component.text("Aim: ${pct(caps.aim)}", NamedTextColor.GRAY)),
-    ))
+        Component.empty(),
+        line(Component.text("Upgrade modules:", NamedTextColor.GOLD)),
+    ) + moduleLines(options))
 
     item.itemMeta = meta
     return item
+}
+
+private fun moduleLines(options: SpiderOptions): List<Component> {
+    val installed = UpgradeModule.entries.filter { options.upgrades.has(it) }
+    if (installed.isEmpty()) return listOf(line(Component.text("None installed (try /wheel)", NamedTextColor.DARK_GRAY)))
+    return installed.map { line(Component.text("- ${it.displayName}", it.color)) }
 }
 
 private fun helpItem(): ItemStack {
