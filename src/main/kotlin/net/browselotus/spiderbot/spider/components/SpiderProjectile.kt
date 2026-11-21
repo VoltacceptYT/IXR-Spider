@@ -9,11 +9,15 @@ import net.browselotus.spiderbot.utilities.ecs.ECSEntity
 import net.browselotus.spiderbot.utilities.maths.FORWARD_VECTOR
 import net.browselotus.spiderbot.utilities.maths.rotate
 import net.browselotus.spiderbot.utilities.resolveCollision
+import net.browselotus.spiderbot.utilities.events.interval
 import net.browselotus.spiderbot.utilities.rendering.interpolateTransform
+import net.browselotus.spiderbot.utilities.rendering.renderBlock
 import net.browselotus.spiderbot.utilities.rendering.renderItem
 import com.destroystokyo.paper.profile.ProfileProperty
 import org.bukkit.Bukkit
 import org.bukkit.Material
+import org.bukkit.Particle
+import org.bukkit.block.data.Levelled
 import org.bukkit.World
 import org.bukkit.entity.Display
 import org.bukkit.entity.ItemDisplay
@@ -25,7 +29,9 @@ import org.bukkit.potion.PotionEffectType
 import org.bukkit.util.Vector
 import org.joml.Matrix4f
 import org.joml.Quaternionf
+import org.joml.Vector3f
 import java.util.UUID
+import kotlin.random.Random
 
 /** Builds the player head (with the given base64 skin texture) that is rendered as a creature's projectile. */
 fun createShotHeadItem(texture: String, profileName: String = "shot"): ItemStack {
@@ -100,6 +106,41 @@ fun fireSpiderProjectile(app: ECS, entity: ECSEntity, spider: SpiderBody, option
     app.emit(SpiderShootEvent(entity = entity, spider = spider, target = target))
 }
 
+/** How long the light left by a laser hit flickers: half a second. */
+private const val LASER_FLICKER_TICKS = 10
+
+/**
+ * What a droid's laser leaves where it hits: a puff of fire particles and a light that flickers for half a
+ * second. Nothing is set on fire and the world is not changed: the light is only shown to nearby players
+ * (as a fake light block), and put back to the real block afterwards.
+ */
+private fun laserImpactEffect(world: World, impact: Vector, lightSpot: Vector) {
+    val at = impact.toLocation(world)
+    world.spawnParticle(Particle.FLAME, at, 14, 0.12, 0.12, 0.12, 0.03)
+    world.spawnParticle(Particle.SMOKE, at, 4, 0.1, 0.1, 0.1, 0.01)
+
+    // light goes in an empty block next to the hit
+    val spot = listOf(lightSpot.toLocation(world).block, at.block).firstOrNull { it.type.isAir } ?: return
+    val location = spot.location
+    val viewers = world.players.filter { it.location.distanceSquared(location) < 64.0 * 64.0 }
+    if (viewers.isEmpty()) return
+
+    var ticks = 0
+    interval(0, 2) { task ->
+        if (ticks >= LASER_FLICKER_TICKS) {
+            val real = spot.blockData
+            for (viewer in viewers) viewer.sendBlockChange(location, real)
+            task.close()
+            return@interval
+        }
+
+        val light = Material.LIGHT.createBlockData() as Levelled
+        light.level = Random.nextInt(8, 16)
+        for (viewer in viewers) viewer.sendBlockChange(location, light)
+        ticks += 2
+    }
+}
+
 fun setupSpiderProjectiles(app: ECS) {
     app.onTick {
         for ((entity, projectile) in app.query<ECSEntity, SpiderProjectile>()) {
@@ -113,6 +154,7 @@ fun setupSpiderProjectiles(app: ECS) {
             // Stop at blocks instead of flying through walls.
             val blockCollision = projectile.world.resolveCollision(projectile.position, delta.clone())
             if (blockCollision != null) {
+                if (projectile.creature == CreatureType.DROID) laserImpactEffect(projectile.world, blockCollision.position, projectile.previousPosition)
                 app.emit(SpiderProjectileHitEvent(world = projectile.world, position = blockCollision.position, target = projectile.target, creature = projectile.creature))
                 entity.remove()
                 continue
@@ -129,6 +171,7 @@ fun setupSpiderProjectiles(app: ECS) {
                 val hit = hitBox.rayTrace(projectile.previousPosition, delta.clone().normalize(), delta.length())
                 if (hit != null) {
                     target.damage(projectile.damage)
+                    if (projectile.creature == CreatureType.DROID) laserImpactEffect(projectile.world, projectile.position, projectile.position)
                     target.addPotionEffect(
                         PotionEffect(PotionEffectType.SLOWNESS, projectile.slownessDurationTicks, projectile.slownessAmplifier, false, true)
                     )
@@ -148,7 +191,37 @@ fun setupSpiderProjectiles(app: ECS) {
         for ((entity, projectile) in app.query<ECSEntity, SpiderProjectile>()) {
             val direction = projectile.velocity.clone()
             if (direction.lengthSquared() < 1e-9) direction.z = 1.0
-            val orientation = Quaternionf().rotationTo(FORWARD_VECTOR.toVector3f(), direction.normalize().toVector3f())
+            val directionF = direction.normalize().toVector3f()
+
+            // the droid fires glowing red lasers: a redstone block stretched along its flight path
+            if (projectile.creature == CreatureType.DROID) {
+                val laserOrientation = Quaternionf().rotationTo(Vector3f(0f, 1f, 0f), directionF)
+                val k = projectile.scale.toFloat()
+
+                renderBlock(
+                    location = projectile.position.toLocation(projectile.world),
+                    init = {
+                        it.block = Material.REDSTONE_BLOCK.createBlockData()
+                        it.brightness = Display.Brightness(15, 15)
+                        it.billboard = Display.Billboard.FIXED
+                        it.setGravity(false)
+                        it.isPersistent = false
+                        it.teleportDuration = 1
+                        it.interpolationDuration = 1
+                    },
+                    update = {
+                        it.interpolateTransform(
+                            Matrix4f()
+                                .rotate(laserOrientation)
+                                .scale(0.25f * k, 0.75f * k, 0.25f * k)
+                                .translate(-0.5f, -0.5f, -0.5f)
+                        )
+                    }
+                ).submit(entity)
+                continue
+            }
+
+            val orientation = Quaternionf().rotationTo(FORWARD_VECTOR.toVector3f(), directionF)
 
             renderItem(
                 location = projectile.position.toLocation(projectile.world),
