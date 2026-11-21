@@ -8,6 +8,7 @@ import net.browselotus.spiderbot.spider.components.Cloak
 import net.browselotus.spiderbot.spider.components.Mountable
 import net.browselotus.spiderbot.spider.components.Owner
 import net.browselotus.spiderbot.spider.components.PointDetector
+import net.browselotus.spiderbot.spider.components.RobotDamageState
 import net.browselotus.spiderbot.spider.components.SoundsAndParticles
 import net.browselotus.spiderbot.spider.components.SpiderAttacker
 import net.browselotus.spiderbot.spider.components.TridentHitDetector
@@ -37,6 +38,7 @@ object AppState {
             Mountable(),
             PointDetector(),
             SpiderAttacker(),
+            RobotDamageState(),
             SpiderRenderer(),
         )
 

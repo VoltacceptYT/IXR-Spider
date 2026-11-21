@@ -3,6 +3,7 @@ package net.browselotus.spiderbot.spider.components
 import net.browselotus.spiderbot.spider.components.body.SpiderBody
 import net.browselotus.spiderbot.spider.configuration.Gait
 import net.browselotus.spiderbot.spider.configuration.SpiderOptions
+import net.browselotus.spiderbot.spider.configuration.capabilities
 import net.browselotus.spiderbot.utilities.*
 import net.browselotus.spiderbot.utilities.ecs.Component
 import net.browselotus.spiderbot.utilities.ecs.ECS
@@ -47,7 +48,7 @@ fun setupBehaviours(app: ECS) {
 
             val tridentDetector = entity.query<TridentHitDetector>()
             if (currentDistance > behaviour.distance + decelerateDistance) {
-                spider.walkAt(direction.clone().multiply(options.gait.maxSpeed), tridentDetector, options.gait)
+                spider.walkAt(direction.clone().multiply(options.gait.maxSpeed * options.capabilities().mobility), tridentDetector, options.gait)
             } else {
                 spider.walkAt(Vector(0.0, 0.0, 0.0), tridentDetector, options.gait)
             }
@@ -62,7 +63,7 @@ fun setupBehaviours(app: ECS) {
 
             val tridentDetector = entity.query<TridentHitDetector>()
             spider.walkAt(
-                behaviour.walkDirection.clone().multiply(options.gait.maxSpeed),
+                behaviour.walkDirection.clone().multiply(options.gait.maxSpeed * options.capabilities().mobility),
                 tridentDetector,
                 options.gait
             )

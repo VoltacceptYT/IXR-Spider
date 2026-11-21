@@ -8,6 +8,7 @@ import net.browselotus.spiderbot.spider.configuration.CloakOptions
 import net.browselotus.spiderbot.spider.configuration.Gait
 import net.browselotus.spiderbot.spider.configuration.SpiderDebugOptions
 import net.browselotus.spiderbot.spider.configuration.SpiderOptions
+import net.browselotus.spiderbot.spider.gui.openSystemStatusGUI
 import net.browselotus.spiderbot.spider.presets.*
 import net.browselotus.spiderbot.utilities.Serializer
 import net.browselotus.spiderbot.utilities.custom_items.setupCustomItemCommand
@@ -555,6 +556,15 @@ fun setupCommands(plugin: SpiderAnimationPlugin) {
             }
             return@setExecutor true
         }
+    }
+
+    getCommand("status").setExecutor { sender, _, _, _ ->
+        if (sender !is Player) {
+            sender.sendMessage("This command can only be used by players.")
+            return@setExecutor true
+        }
+        openSystemStatusGUI(sender)
+        true
     }
 }
 

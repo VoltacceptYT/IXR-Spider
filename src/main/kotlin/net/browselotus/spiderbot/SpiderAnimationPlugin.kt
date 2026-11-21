@@ -7,6 +7,7 @@ import net.browselotus.spiderbot.spider.components.body.SpiderBody
 import net.browselotus.spiderbot.spider.components.rendering.SpiderRenderer
 import net.browselotus.spiderbot.spider.configuration.SpiderOptions
 import net.browselotus.spiderbot.spider.gui.setupSpiderCustomizationGUI
+import net.browselotus.spiderbot.spider.gui.setupSystemStatusGUI
 import net.browselotus.spiderbot.spider.saveSpiderOptions
 import net.browselotus.spiderbot.spider.setupSpider
 import net.browselotus.spiderbot.spider.setupSpiderOwnership
@@ -48,6 +49,7 @@ class SpiderAnimationPlugin : JavaPlugin() {
         setupLaserPointer(ecs)
         setupSpiderOwnership()
         setupSpiderCustomizationGUI()
+        setupSystemStatusGUI()
 
         ecs.start()
         onTick {

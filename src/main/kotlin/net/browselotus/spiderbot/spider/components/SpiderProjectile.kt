@@ -3,6 +3,7 @@ package net.browselotus.spiderbot.spider.components
 import net.browselotus.spiderbot.spider.components.body.SpiderBody
 import net.browselotus.spiderbot.spider.configuration.CreatureType
 import net.browselotus.spiderbot.spider.configuration.SpiderOptions
+import net.browselotus.spiderbot.spider.configuration.capabilities
 import net.browselotus.spiderbot.utilities.ecs.Component
 import net.browselotus.spiderbot.utilities.ecs.ECS
 import net.browselotus.spiderbot.utilities.ecs.ECSEntity
@@ -87,6 +88,11 @@ fun fireSpiderProjectile(app: ECS, entity: ECSEntity, spider: SpiderBody, option
     val direction = target.eyeLocation.toVector().subtract(muzzle)
     if (direction.lengthSquared() < 1e-6) return
     direction.normalize()
+
+    val spread = options.capabilities().spread
+    if (spread > 0.0) {
+        direction.add(Vector(Random.nextDouble(-spread, spread), Random.nextDouble(-spread, spread), Random.nextDouble(-spread, spread))).normalize()
+    }
 
     app.spawn(
         SpiderProjectile(

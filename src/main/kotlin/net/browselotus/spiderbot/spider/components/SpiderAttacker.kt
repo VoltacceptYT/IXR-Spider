@@ -2,6 +2,7 @@ package net.browselotus.spiderbot.spider.components
 
 import net.browselotus.spiderbot.spider.components.body.SpiderBody
 import net.browselotus.spiderbot.spider.configuration.SpiderOptions
+import net.browselotus.spiderbot.spider.configuration.capabilities
 import net.browselotus.spiderbot.utilities.ecs.Component
 import net.browselotus.spiderbot.utilities.ecs.ECS
 import net.browselotus.spiderbot.utilities.ecs.ECSEntity
@@ -77,10 +78,12 @@ fun setupSpiderAttack(app: ECS) {
 
             if (attacker.cooldown > 0) attacker.cooldown--
 
-            if (!config.enabled) {
+            val caps = options.capabilities()
+            if (!config.enabled || !caps.online || caps.sensors <= 0.0 || caps.firepower <= 0.0) {
                 attacker.target = null
                 continue
             }
+            val detect = config.detectRange * caps.sensors
 
             val ownerPlayer = entity.query<Owner>()?.let { Bukkit.getPlayer(it.playerUUID) }
 
@@ -93,7 +96,7 @@ fun setupSpiderAttack(app: ECS) {
                 currentTarget.position.distance(spider.position) <= config.loseRange
 
             if (!stillValid) {
-                val candidates = spider.world.getNearbyEntities(spider.location(), config.detectRange, config.detectRange, config.detectRange)
+                val candidates = spider.world.getNearbyEntities(spider.location(), detect, detect, detect)
                     .asSequence()
                     .filterIsInstance<LivingEntity>()
                     .filter { it.isValid && !it.isDead }
@@ -112,7 +115,7 @@ fun setupSpiderAttack(app: ECS) {
             val distance = spider.position.distance(target.position)
             if (attacker.cooldown <= 0 && distance <= config.attackRange) {
                 fireSpiderProjectile(app, entity, spider, options, target)
-                attacker.cooldown = config.cooldownTicks
+                attacker.cooldown = (config.cooldownTicks / caps.firepower).toInt()
             }
         }
     }

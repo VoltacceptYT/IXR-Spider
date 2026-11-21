@@ -4,6 +4,7 @@ import net.browselotus.spiderbot.spider.components.body.SpiderBody
 import net.browselotus.spiderbot.spider.configuration.ArmPose
 import net.browselotus.spiderbot.spider.configuration.DroidRig
 import net.browselotus.spiderbot.spider.configuration.SpiderOptions
+import net.browselotus.spiderbot.spider.configuration.efficiency
 import net.browselotus.spiderbot.utilities.ecs.ECS
 import net.browselotus.spiderbot.utilities.ecs.ECSEntity
 import org.bukkit.Bukkit
@@ -121,10 +122,17 @@ private fun animateDroid(entity: ECSEntity, spider: SpiderBody, options: SpiderO
     val stunned = entity.query<TridentHitDetector>()?.stunned == true
     val flail = if (stunned) 1f else rig.shock
 
+    val damage = options.damage
+    val headEff = efficiency(damage.of("head")).toFloat()
+    val leftEff = efficiency(damage.of("armL")).toFloat()
+    val rightEff = efficiency(damage.of("armR")).toFloat()
+    val slump = if (damage.of("chest") <= 0.0) 1f else 0f
+    gazeYaw += sin(t * 1.7f) * (1f - headEff) * 0.5f
+
     // ---------- chest ----------
     val chestAim = if (target != null) gazeYaw.coerceIn(-1f, 1f) * 0.35f else 0f
     val chestYaw = stride * 0.22f + chestAim
-    val chestPitch = moving * 0.12f + breath * 0.012f - flail * 0.30f - rig.recoil * 0.05f
+    val chestPitch = moving * 0.12f + breath * 0.012f - flail * 0.30f - rig.recoil * 0.05f + slump * 0.45f
     val chestRoll = -stride * 0.04f -
         (spider.rotationalVelocity.y * 3f).coerceIn(-0.12f, 0.12f) +
         sin(t * 0.031f) * 0.01f
@@ -135,7 +143,7 @@ private fun animateDroid(entity: ECSEntity, spider: SpiderBody, options: SpiderO
 
     // ---------- head (a child of the chest, so it only does what the chest does not) ----------
     val headYaw = (gazeYaw.coerceIn(-1.3f, 1.3f) - rig.chestYaw).coerceIn(-1.2f, 1.2f)
-    val headPitch = (gazePitch - rig.chestPitch).coerceIn(-0.6f, 0.6f)
+    val headPitch = (gazePitch - rig.chestPitch).coerceIn(-0.6f, 0.6f) + slump * 0.5f
     val headRoll = flail * sin(t * 1.3f) * 0.2f
 
     rig.headYaw = approach(rig.headYaw, headYaw, 0.3f)
@@ -181,6 +189,11 @@ private fun animateDroid(entity: ECSEntity, spider: SpiderBody, options: SpiderO
 
     // kick back from the shot
     lElbow += rig.recoil * 0.35f
+
+    lFlex += (1f - leftEff) * (0.5f + sin(t * 0.8f) * 0.15f) + slump * 0.3f
+    rFlex += (1f - rightEff) * (0.5f + sin(t * 0.8f + 1f) * 0.15f) + slump * 0.3f
+    lElbow += (1f - leftEff) * 0.3f
+    rElbow += (1f - rightEff) * 0.3f
 
     rig.leftArm.approach(lFlex, lElbow, lAbduct, lYaw, if (rig.aim > 0f) 0.35f else 0.25f)
     rig.rightArm.approach(rFlex, rElbow, rAbduct, rYaw, 0.25f)

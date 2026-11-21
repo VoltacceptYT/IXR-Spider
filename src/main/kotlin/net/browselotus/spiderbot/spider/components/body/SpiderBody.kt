@@ -280,6 +280,7 @@ class SpiderBody(
     }
 
     private fun calcLegacyNormal(): NormalInfo? {
+        if (legs.any { it.isDisabled } && legs.any { it.isGrounded() }) return NormalInfo(normal = Vector(0, 1, 0))
         val pairs = LegLookUp.diagonalPairs(legs.indices.toList())
         if (pairs.any { pair -> pair.mapNotNull { legs.getOrNull(it) }.all { it.isGrounded() } }) {
             return NormalInfo(normal = Vector(0, 1, 0))

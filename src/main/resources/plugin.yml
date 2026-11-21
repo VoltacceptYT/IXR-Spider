@@ -37,6 +37,10 @@ commands:
   splay:
     description: Splay
     permission: spiderbot.splay
+  status:
+    description: Open the robot system status page
+    aliases: [robostatus]
+    permission: spiderbot.status
 
 permissions:
   spiderbot.items:
@@ -72,3 +76,6 @@ permissions:
   spiderbot.splay:
     description: Allows access to the splay command
     default: op
+  spiderbot.status:
+    description: Allows access to the status command
+    default: true

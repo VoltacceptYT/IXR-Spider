@@ -34,6 +34,7 @@ fun setupTridentHitDetector(app: ECS) {
 
                 trident.velocity = tridentDirection.clone().multiply(-.3)
                 app.emit(TridentHitEvent(entity = entity, spider = spider, trident = trident))
+                damageRobot(app, entity, trident.position, TRIDENT_DAMAGE)
 
                 spider.velocity.add(tridentDirection.multiply(options.gait.tridentKnockBack))
 

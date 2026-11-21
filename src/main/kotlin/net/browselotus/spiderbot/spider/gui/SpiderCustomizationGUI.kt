@@ -46,6 +46,7 @@ private const val SLOT_SCALE_UP = 16
 private const val SLOT_CREATURE_BUTTON = 22
 private const val SLOT_BODY_COLOR_BUTTON = 30
 private const val SLOT_GLOW_COLOR_BUTTON = 32
+private const val SLOT_STATUS_BUTTON = 40
 private const val SLOT_CLOSE = 49
 
 // ----- Color submenu slot layout -----
@@ -92,7 +93,12 @@ private fun onMainMenuClick(player: Player, slot: Int, spider: SpiderBody, optio
         SLOT_SCALE_DOWN -> adjustScale(spider, options, -SCALE_STEP)
         SLOT_SCALE_UP -> adjustScale(spider, options, SCALE_STEP)
         SLOT_CLOSE -> { player.closeInventory(); return }
+        SLOT_STATUS_BUTTON -> { openSystemStatusGUI(player); return }
         SLOT_CREATURE_BUTTON -> {
+            if (options.damage.isDamaged()) {
+                player.sendActionBar(Component.text("Repair all damage before swapping chassis", NamedTextColor.RED))
+                return
+            }
             switchCreature(spider, options)
             player.playSound(player.location, Sound.ITEM_ARMOR_EQUIP_NETHERITE, 0.7f, 1.2f)
             saveSpiderOptions(player.uniqueId, options)
@@ -206,6 +212,7 @@ private fun populateMain(inventory: Inventory, options: SpiderOptions) {
 private fun refreshMain(inventory: Inventory, options: SpiderOptions) {
     inventory.setItem(SLOT_SCALE_DISPLAY, createScaleDisplay(options.bodyPlan.scale))
     inventory.setItem(SLOT_CREATURE_BUTTON, createCreatureButton(options.creature))
+    inventory.setItem(SLOT_STATUS_BUTTON, createStatusButton(options))
     inventory.setItem(SLOT_BODY_COLOR_BUTTON, createColorMenuButton(Material.PAINTING, "Body Color", NamedTextColor.GOLD, options.bodyPlan.bodyColor))
     inventory.setItem(SLOT_GLOW_COLOR_BUTTON, createColorMenuButton(Material.ENDER_EYE, "Eye / Glow Color", NamedTextColor.AQUA, options.bodyPlan.glowColor))
 }
@@ -236,6 +243,19 @@ private fun createScaleDisplay(scale: Double): ItemStack {
     val meta = item.itemMeta ?: return item
     meta.itemName(Component.text("Scale: ${"%.2f".format(scale)}x", NamedTextColor.YELLOW).decoration(TextDecoration.ITALIC, false))
     meta.lore(listOf(Component.text("Click the arrows to resize", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false)))
+    item.itemMeta = meta
+    return item
+}
+
+private fun createStatusButton(options: SpiderOptions): ItemStack {
+    val item = ItemStack(if (options.damage.isDamaged()) Material.REDSTONE_BLOCK else Material.IRON_BLOCK)
+    val meta = item.itemMeta ?: return item
+
+    meta.itemName(Component.text("System Status", NamedTextColor.AQUA).decoration(TextDecoration.ITALIC, false))
+    meta.lore(listOf(
+        Component.text(if (options.damage.isDamaged()) "Damage detected" else "All systems operational", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false),
+        Component.text("Click to inspect and repair", NamedTextColor.DARK_GRAY).decoration(TextDecoration.ITALIC, false),
+    ))
     item.itemMeta = meta
     return item
 }
