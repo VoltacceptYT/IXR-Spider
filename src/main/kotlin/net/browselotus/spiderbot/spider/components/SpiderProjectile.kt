@@ -72,9 +72,11 @@ fun fireSpiderProjectile(app: ECS, entity: ECSEntity, spider: SpiderBody, option
     val config = options.attack
     val scale = options.bodyPlan.scale
 
-    // the muzzle sits at a fixed spot on the body, so it follows the body's orientation
-    val muzzle = spider.position.clone()
-        .add(options.creature.muzzleOffset.multiply(scale).rotate(spider.orientation))
+    // a droid fires from the tip of its cannon arm, wherever the arm is pointing right now;
+    // everything else has a fixed muzzle spot on the body, so it follows the body's orientation
+    val muzzle = options.bodyPlan.rig?.muzzleWorld(spider.position, spider.orientation)
+        ?: spider.position.clone()
+            .add(options.creature.muzzleOffset.multiply(scale).rotate(spider.orientation))
 
     val direction = target.eyeLocation.toVector().subtract(muzzle)
     if (direction.lengthSquared() < 1e-6) return

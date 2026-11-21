@@ -1,18 +1,24 @@
 package net.browselotus.spiderbot.spider.presets
 
 import net.browselotus.spiderbot.spider.configuration.BodyPlan
+import net.browselotus.spiderbot.spider.configuration.DroidRig
+import net.browselotus.spiderbot.spider.configuration.RigPart
+import net.browselotus.spiderbot.spider.configuration.SpiderOptions
 import net.browselotus.spiderbot.utilities.BlockDisplayModelPiece
 import net.browselotus.spiderbot.utilities.DisplayModel
 import org.bukkit.Material
 import org.bukkit.entity.Display
 import org.joml.Matrix4f
+import org.joml.Vector3f
 import kotlin.math.max
 import kotlin.math.min
 
 /**
  * The humanoid look of the Droid, built out of boxes, with a few rotated pieces for faceted joints.
  *
- * The torso is authored around the pelvis (the body origin): +Y is up, +Z is forward and +X is the
+ * It is split into separately moving parts (see [DroidRig]): the pelvis stays on the body, the chest, head,
+ * upper arms and forearms are rig parts, the legs are the usual leg chains. All of it is authored in the same
+ * body space, around the pelvis (the body origin): +Y is up, +Z is forward and +X is the
  * droid's left. Pieces tagged "cloak" are the paintable armour (recolored by the body color setting,
  * and tinted by the cloak), "eye" pieces get the animated glow color, and "blinking_lights" the
  * flickering accent lights.
@@ -20,7 +26,7 @@ import kotlin.math.min
  * Leg segments are authored along +Z (the direction the segment points), with +Y being the direction the
  * droid faces, so a segment hanging straight down has its front along +Y.
  *
- * Keep the cannon tip (x = 0.35, y = 0.20, z ~ 0.53) in line with CreatureType.DROID's muzzle offset.
+ * The cannon tip is the rig's muzzleLocal, shots leave from wherever the arm has it pointed.
  */
 object DroidModels {
     private val PAINT = Material.WHITE_CONCRETE
@@ -88,10 +94,10 @@ object DroidModels {
         rbox(material, cx - h * 0.9, cy - h * 0.9, cz - h * 0.9, cx + h * 0.9, cy + h * 0.9, cz + h * 0.9, 45.0, 45.0, 0.0),
     )
 
-    fun torso(): DisplayModel {
+    /** The part of the droid that stays on the body: pelvis, belt and the waist core. */
+    fun pelvis(): DisplayModel {
         val p = mutableListOf<BlockDisplayModelPiece>()
 
-        // ---------- pelvis and belt ----------
         p += box(DARK, -0.20, -0.12, -0.12, 0.20, 0.06, 0.12)
         p += paint(-0.055, -0.13, 0.12, 0.055, 0.03, 0.15)           // front guard
         p += paint(-0.16, -0.10, -0.14, 0.16, 0.03, -0.115)          // rear guard
@@ -99,13 +105,19 @@ object DroidModels {
         p += box(STEEL, -0.04, 0.035, 0.13, 0.04, 0.085, 0.145)      // buckle
         p += light(-0.012, 0.052, 0.145, 0.012, 0.068, 0.152)
 
-        // ---------- waist: black core with ribbed rings and two small pistons ----------
+        // waist: black core with ribbed rings and two small pistons
         p += box(BLACK, -0.10, 0.08, -0.08, 0.10, 0.20, 0.08)
         p += box(DARK, -0.115, 0.10, -0.095, 0.115, 0.12, 0.095)
         p += box(DARK, -0.115, 0.16, -0.095, 0.115, 0.18, 0.095)
         for (s in SIDES) p += box(STEEL, 0.05 * s, 0.08, 0.09, 0.065 * s, 0.20, 0.105)
 
-        // ---------- chest ----------
+        return DisplayModel(p)
+    }
+
+    /** Chest, backpack and shoulder pads. Twists and leans on the waist. */
+    fun chest(): DisplayModel {
+        val p = mutableListOf<BlockDisplayModelPiece>()
+
         p += box(DARK, -0.23, 0.20, -0.13, 0.23, 0.60, 0.13)         // inner frame
         p += paint(-0.21, 0.20, -0.15, 0.21, 0.40, 0.15)             // lower plate
         for (s in SIDES) p += paint(0.02 * s, 0.40, -0.14, 0.25 * s, 0.60, 0.16)   // pecs
@@ -126,7 +138,7 @@ object DroidModels {
         p += light(-0.035, 0.265, 0.15, 0.035, 0.335, 0.165)
         for (s in SIDES) p += light(0.11 * s, 0.295, 0.15, 0.135 * s, 0.315, 0.162)
 
-        // ---------- backpack with thrusters, vents and antennas ----------
+        // backpack with thrusters, vents and antennas
         p += box(DARK, -0.16, 0.26, -0.24, 0.16, 0.56, -0.12)
         p += paint(-0.15, 0.56, -0.235, 0.15, 0.60, -0.13)
         for (i in 0..2) {
@@ -140,12 +152,27 @@ object DroidModels {
         }
         p += light(0.11, 0.80, -0.205, 0.145, 0.83, -0.18)
 
-        // ---------- neck ----------
-        p += box(BLACK, -0.05, 0.65, -0.05, 0.05, 0.73, 0.05)
+        // shoulder sockets and pads (the arms swing underneath them)
+        for (s in SIDES) {
+            p += joint(DARK, 0.335 * s, 0.50, 0.0, 0.065)
+            p += paint(0.27 * s, 0.56, -0.12, 0.43 * s, 0.64, 0.12)                        // pad
+            p += paint(0.40 * s, 0.46, -0.10, 0.45 * s, 0.60, 0.10)                        // outer plate
+            p += box(BLACK, 0.30 * s, 0.64, -0.02, 0.40 * s, 0.65, 0.02)                   // pad stripe
+            p += light(0.33 * s, 0.58, 0.12, 0.37 * s, 0.60, 0.13)
+        }
+
+        return DisplayModel(p)
+    }
+
+    /** Neck and head. Turns and nods on the neck, on top of the chest. */
+    fun head(): DisplayModel {
+        val p = mutableListOf<BlockDisplayModelPiece>()
+
+        // neck
+        p += box(BLACK, -0.05, 0.62, -0.05, 0.05, 0.73, 0.05)
         p += box(DARK, -0.065, 0.66, -0.065, 0.065, 0.675, 0.065)
         p += box(DARK, -0.065, 0.70, -0.065, 0.065, 0.715, 0.065)
 
-        // ---------- head ----------
         p += box(DARK, -0.11, 0.73, -0.10, 0.11, 0.775, 0.125)       // jaw
         for (x in doubleArrayOf(-0.04, -0.005, 0.03)) p += box(BLACK, x, 0.735, 0.125, x + 0.015, 0.77, 0.135)
         p += box(STEEL, -0.04, 0.72, 0.08, 0.04, 0.735, 0.125)       // chin
@@ -170,49 +197,67 @@ object DroidModels {
         p += light(0.07, 1.14, -0.02, 0.10, 1.18, 0.01)
         p += box(STEEL, -0.09, 0.97, -0.01, -0.075, 1.06, 0.005)
 
-        // ---------- shoulders and upper arms (both sides) ----------
-        for (s in SIDES) {
-            p += joint(DARK, 0.335 * s, 0.50, 0.0, 0.065)                                  // shoulder socket
-            p += paint(0.27 * s, 0.56, -0.12, 0.43 * s, 0.64, 0.12)                        // pad
-            p += paint(0.40 * s, 0.46, -0.10, 0.45 * s, 0.60, 0.10)                        // outer plate
-            p += box(BLACK, 0.30 * s, 0.64, -0.02, 0.40 * s, 0.65, 0.02)                   // pad stripe
-            p += light(0.33 * s, 0.58, 0.12, 0.37 * s, 0.60, 0.13)
+        return DisplayModel(p)
+    }
 
-            p += box(DARK, 0.315 * s, 0.20, -0.04, 0.385 * s, 0.46, 0.04)                  // upper arm core
-            p += paint(0.295 * s, 0.31, -0.065, 0.405 * s, 0.44, 0.065)                    // bicep armour
-            p += box(BLACK, 0.31 * s, 0.285, -0.055, 0.39 * s, 0.305, 0.055)              // band
-            p += joint(DARK, 0.35 * s, 0.20, 0.0, 0.055)                                   // elbow
-        }
+    /** Upper arm, hanging straight down from the shoulder (y = 0.50) to the elbow (y = 0.20). [s] is +1 for the left arm, -1 for the right. */
+    fun upperArm(s: Double): DisplayModel {
+        val p = mutableListOf<BlockDisplayModelPiece>()
 
-        // ---------- right arm: forearm and a relaxed hand ----------
-        run {
-            val s = -1.0
-            p += paint(0.29 * s, 0.03, -0.065, 0.41 * s, 0.145, 0.065)                     // forearm
-            p += box(BLACK, 0.315 * s, -0.02, -0.045, 0.385 * s, 0.03, 0.045)              // wrist
-            p += box(DARK, 0.305 * s, -0.115, -0.04, 0.395 * s, -0.02, 0.045)              // palm
+        p += box(DARK, 0.315 * s, 0.20, -0.04, 0.385 * s, 0.50, 0.04)                  // core
+        p += paint(0.295 * s, 0.31, -0.065, 0.405 * s, 0.44, 0.065)                    // bicep armour
+        p += box(BLACK, 0.31 * s, 0.285, -0.055, 0.39 * s, 0.305, 0.055)              // band
+        p += joint(DARK, 0.35 * s, 0.20, 0.0, 0.055)                                   // elbow
+
+        return DisplayModel(p)
+    }
+
+    /**
+     * Forearm, hanging straight down from the elbow (y = 0.20). [s] is +1 for the left arm, which carries the
+     * cannon along the arm's own axis (it points forward once the elbow is bent 90 degrees), and -1 for the
+     * right arm, which ends in a hand.
+     */
+    fun foreArm(s: Double): DisplayModel {
+        val p = mutableListOf<BlockDisplayModelPiece>()
+
+        if (s > 0) {
+            p += paint(0.29, 0.02, -0.075, 0.41, 0.19, 0.075)                              // forearm shell
+            p += box(DARK, 0.28, -0.01, -0.08, 0.42, 0.02, 0.08)                           // collar
+            p += box(BLACK, 0.315, -0.12, -0.06, 0.385, -0.01, 0.06)                       // barrel housing
+            for (y in doubleArrayOf(-0.03, -0.06, -0.09)) p += box(DARK, 0.305, y, -0.07, 0.395, y + 0.015, 0.07)   // heat fins
+            p += box(STEEL, 0.335, -0.26, -0.025, 0.365, -0.12, 0.025)                     // barrel
+            p += box(BLACK, 0.325, -0.30, -0.035, 0.375, -0.25, 0.035)                     // muzzle brake
+            p += light(0.335, -0.31, -0.02, 0.365, -0.30, 0.02)                            // glowing tip
+            p += box(DARK, 0.405, -0.04, -0.05, 0.43, 0.12, 0.05)                          // battery pack
+            p += light(0.43, 0.00, -0.02, 0.435, 0.06, 0.02)
+            p += box(BLACK, 0.335, -0.10, 0.06, 0.365, -0.03, 0.08)                        // sight (on top once aimed)
+            p += box(DARK, 0.33, -0.12, -0.08, 0.37, -0.04, -0.06)                         // under rail
+        } else {
+            p += paint(0.29 * s, 0.02, -0.065, 0.41 * s, 0.19, 0.065)                      // forearm
+            p += box(BLACK, 0.315 * s, -0.03, -0.045, 0.385 * s, 0.02, 0.045)              // wrist
+            p += box(DARK, 0.305 * s, -0.115, -0.04, 0.395 * s, -0.03, 0.045)              // palm
             p += box(BLACK, 0.305 * s, -0.19, -0.04, 0.395 * s, -0.115, -0.015)            // fingers
             p += box(BLACK, 0.305 * s, -0.19, -0.01, 0.395 * s, -0.115, 0.015)
             p += box(BLACK, 0.305 * s, -0.19, 0.02, 0.395 * s, -0.115, 0.045)
             p += box(DARK, 0.285 * s, -0.13, 0.0, 0.305 * s, -0.06, 0.03)                  // thumb
         }
 
-        // ---------- left arm: forearm cannon pointing forward ----------
-        run {
-            p += paint(0.295, 0.14, 0.055, 0.405, 0.26, 0.24)                              // forearm shell
-            p += box(DARK, 0.29, 0.135, 0.24, 0.41, 0.265, 0.275)                          // collar
-            p += box(BLACK, 0.315, 0.16, 0.275, 0.385, 0.24, 0.40)                         // barrel housing
-            for (z in doubleArrayOf(0.295, 0.325, 0.355)) p += box(DARK, 0.305, 0.15, z, 0.395, 0.25, z + 0.015)   // heat fins
-            p += box(STEEL, 0.335, 0.18, 0.40, 0.365, 0.22, 0.50)                          // barrel
-            p += box(BLACK, 0.325, 0.17, 0.47, 0.375, 0.23, 0.52)                          // muzzle brake
-            p += light(0.335, 0.185, 0.52, 0.365, 0.215, 0.535)                            // glowing tip
-            p += box(DARK, 0.405, 0.15, 0.08, 0.43, 0.25, 0.22)                            // battery pack
-            p += light(0.43, 0.19, 0.12, 0.435, 0.21, 0.18)
-            p += box(BLACK, 0.335, 0.26, 0.10, 0.365, 0.28, 0.17)                          // sight
-            p += box(DARK, 0.33, 0.125, 0.06, 0.37, 0.14, 0.22)                            // under rail
-        }
-
         return DisplayModel(p)
     }
+
+    /** The movable skeleton: chest, head, both upper arms and both forearms. */
+    fun rig(): DroidRig = DroidRig(
+        parts = listOf(
+            RigPart(DroidRig.CHEST, null, Vector3f(0f, 0.17f, 0f), chest()),
+            RigPart(DroidRig.HEAD, DroidRig.CHEST, Vector3f(0f, 0.67f, 0f), head()),
+            RigPart(DroidRig.UPPER_L, DroidRig.CHEST, Vector3f(0.335f, 0.50f, 0f), upperArm(1.0)),
+            RigPart(DroidRig.UPPER_R, DroidRig.CHEST, Vector3f(-0.335f, 0.50f, 0f), upperArm(-1.0)),
+            RigPart(DroidRig.FORE_L, DroidRig.UPPER_L, Vector3f(0.35f, 0.20f, 0f), foreArm(1.0)),
+            RigPart(DroidRig.FORE_R, DroidRig.UPPER_R, Vector3f(-0.35f, 0.20f, 0f), foreArm(-1.0)),
+        ),
+        // the tip of the cannon, see foreArm
+        muzzleLocal = Vector3f(0.35f, -0.31f, 0f),
+    )
 
     /** The upper leg, from the hip to the knee. */
     fun thigh(length: Double): DisplayModel {
@@ -281,9 +326,24 @@ object DroidModels {
 
     /** Gives every leg of [bodyPlan] a thigh model on its first segment and a shin model on its second. */
     fun applyLegModels(bodyPlan: BodyPlan) {
+        val s = bodyPlan.scale
         for (leg in bodyPlan.legs) {
-            leg.segments.getOrNull(0)?.let { it.model = thigh(it.length) }
-            leg.segments.getOrNull(1)?.let { it.model = shin(it.length) }
+            leg.segments.getOrNull(0)?.let { it.model = thigh(it.length / s).scale(s.toFloat()) }
+            leg.segments.getOrNull(1)?.let { it.model = shin(it.length / s).scale(s.toFloat()) }
         }
+    }
+
+    /**
+     * Builds all of a droid's models afresh at the options' current scale and color. Saved options carry the
+     * models they were saved with, so this is what makes an updated droid look up to date after loading.
+     */
+    fun rebuildVisuals(options: SpiderOptions) {
+        val plan = options.bodyPlan
+        val s = plan.scale.toFloat()
+
+        plan.bodyModel = pelvis().scale(s)
+        plan.rig = rig().also { it.scale(s) }
+        applyLegModels(plan)
+        plan.setBodyColor(plan.bodyColor)
     }
 }

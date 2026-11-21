@@ -18,6 +18,16 @@ fun renderSpider(spider: SpiderBody, cloak: Cloak, options: SpiderOptions): Rend
     val transform = Matrix4f().rotate(spider.orientation)
     group[spider] = renderModel(spider, cloak, spider.position, options.bodyPlan.bodyModel, transform, options)
 
+    // the droid's separately moving parts: each one is posed by the rig and then follows the body
+    val rig = options.bodyPlan.rig
+    if (rig != null) {
+        rig.updateChains()
+        for (part in rig.parts) {
+            val partTransform = Matrix4f(transform).mul(rig.chain(part.name))
+            group["rig:${part.name}"] = renderModel(spider, cloak, spider.position, part.model, partTransform, options)
+        }
+    }
+
 
     for ((legIndex, leg) in spider.legs.withIndex()) {
         val chain = leg.chain

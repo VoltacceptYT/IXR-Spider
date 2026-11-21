@@ -1,6 +1,8 @@
 package net.browselotus.spiderbot.spider
 
+import net.browselotus.spiderbot.spider.configuration.CreatureType
 import net.browselotus.spiderbot.spider.configuration.SpiderOptions
+import net.browselotus.spiderbot.spider.presets.DroidModels
 import net.browselotus.spiderbot.utilities.Serializer
 import net.browselotus.spiderbot.utilities.currentPlugin
 import java.io.File
@@ -22,7 +24,13 @@ fun loadSpiderOptions(playerUUID: UUID): SpiderOptions? {
     if (!file.exists()) return null
 
     return try {
-        Serializer.gson.fromJson(file.readText(), SpiderOptions::class.java)
+        val options = Serializer.gson.fromJson(file.readText(), SpiderOptions::class.java) ?: return null
+        options.bodyPlan.restoreAfterLoad()
+
+        // saved options carry the models they were saved with, so give droids their current, jointed look
+        if (options.creature == CreatureType.DROID) DroidModels.rebuildVisuals(options)
+
+        options
     } catch (e: Exception) {
         currentPlugin.logger.warning("Could not load saved spider options for $playerUUID, using defaults: $e")
         null

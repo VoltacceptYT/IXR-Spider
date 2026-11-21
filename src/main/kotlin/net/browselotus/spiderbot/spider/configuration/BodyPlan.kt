@@ -5,6 +5,7 @@ import net.browselotus.spiderbot.spider.presets.SpiderTorsoModels
 import net.browselotus.spiderbot.spider.presets.blinkingPaletteFor
 import net.browselotus.spiderbot.spider.presets.concreteBlockData
 import net.browselotus.spiderbot.spider.presets.eyePaletteFor
+import net.browselotus.spiderbot.utilities.BlockDisplayModelPiece
 import net.browselotus.spiderbot.utilities.DisplayModel
 import org.bukkit.DyeColor
 import org.bukkit.util.Vector
@@ -37,7 +38,18 @@ class BodyPlan {
 
     var bodyModel = SpiderTorsoModels.EMPTY.model.clone()
 
+    /**
+     * The movable skeleton of a droid (chest, head, arms). Null for creatures that only have a fixed body model.
+     * Not saved: it is rebuilt from the creature type when options are loaded.
+     */
+    @Transient
+    var rig: DroidRig? = null
+
+    // Not saved either: they are derived from [glowColor]. (Saving them used to bring them back as plain
+    // strings, which crashed the eye/light animation.)
+    @Transient
     var eyePalette = AnimatedPalettes.CYAN_EYES.palette
+    @Transient
     var blinkingPalette = AnimatedPalettes.CYAN_BLINKING_LIGHTS.palette
 
     // Player-customizable appearance. These track the *current* selection so
@@ -56,10 +68,19 @@ class BodyPlan {
         bodyColor = dye
         val block = dye.concreteBlockData()
 
-        val pieces = bodyModel.pieces.filter { it.tags.contains("cloak") } +
+        val pieces = modelPieces().filter { it.tags.contains("cloak") } +
             legs.flatMap { leg -> leg.segments.flatMap { it.model.pieces.filter { piece -> piece.tags.contains("cloak") } } }
 
         for (piece in pieces) piece.block = block
+    }
+
+    /** Every piece of the fixed body model and of the rig's parts (not the legs). */
+    fun modelPieces(): List<BlockDisplayModelPiece> = bodyModel.pieces + (rig?.allPieces() ?: emptyList())
+
+    /** Re-derives everything that is not saved, after the plan has been loaded from disk. */
+    fun restoreAfterLoad() {
+        eyePalette = eyePaletteFor(glowColor)
+        blinkingPalette = blinkingPaletteFor(glowColor)
     }
 
     /** Recolors the animated eyes and blinking accent lights to the given dye color. */
@@ -72,6 +93,7 @@ class BodyPlan {
     fun scale(scale: Double) {
         this.scale *= scale
         bodyModel.scale(scale.toFloat())
+        rig?.scale(scale.toFloat())
         legs.forEach {
             it.attachmentPosition.multiply(scale)
             it.restPosition.multiply(scale)

@@ -44,5 +44,6 @@ fun setupSpider(app: ECS) {
     setupSoundAndParticles(app)
     setupTridentHitDetector(app)
     setupSpiderProjectiles(app)
+    setupDroidAnimation(app)
     setupRenderer(app)
 }

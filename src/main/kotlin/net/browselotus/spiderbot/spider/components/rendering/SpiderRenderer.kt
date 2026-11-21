@@ -20,10 +20,10 @@ class SpiderRenderer : Component {
 fun setupRenderer(app: ECS) {
     // apply eye blinking effect
     interval(0,10) {
-        for ((spider, options) in app.query<SpiderBody, SpiderOptions>()) {
-            val pieces = options.bodyPlan.bodyModel.pieces.filter { it.tags.contains("eye") }
+        for ((_, options) in app.query<SpiderBody, SpiderOptions>()) {
+            val pieces = options.bodyPlan.modelPieces().filter { it.tags.contains("eye") }
 
-            if (Random.nextBoolean()) return@interval
+            if (Random.nextBoolean()) continue
             for (piece in pieces) {
                 val block = options.bodyPlan.eyePalette.random()
                 piece.block = block.first
@@ -34,10 +34,10 @@ fun setupRenderer(app: ECS) {
 
     // apply blinking lights effect
     interval(0,5) {
-        for ((spider, options) in app.query<SpiderBody, SpiderOptions>()) {
-            val pieces = options.bodyPlan.bodyModel.pieces.filter { it.tags.contains("blinking_lights") }
+        for ((_, options) in app.query<SpiderBody, SpiderOptions>()) {
+            val pieces = options.bodyPlan.modelPieces().filter { it.tags.contains("blinking_lights") }
 
-            if (Random.nextBoolean()) return@interval
+            if (Random.nextBoolean()) continue
             for (piece in pieces) {
                 val block = options.bodyPlan.blinkingPalette.random()
                 piece.block = block.first

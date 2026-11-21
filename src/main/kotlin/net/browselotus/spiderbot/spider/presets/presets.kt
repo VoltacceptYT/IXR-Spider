@@ -149,7 +149,8 @@ fun droid(@Suppress("UNUSED_PARAMETER") segmentCount: Int, segmentLength: Double
     options.gallopGait = Gait(.25, GaitType.WALK).apply { configureForDroid(bodyHeight) }
     options.sound.step = SoundPlayer(Sound.BLOCK_METAL_STEP, .3f, .8f)
 
-    options.bodyPlan.bodyModel = DroidModels.torso()
+    options.bodyPlan.bodyModel = DroidModels.pelvis()
+    options.bodyPlan.rig = DroidModels.rig()
     options.bodyPlan.addLegPair(
         root = Vector(.12, -DROID_HIP_DROP, .0),
         rest = Vector(.12, .0, .0),
