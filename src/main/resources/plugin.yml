@@ -11,7 +11,15 @@ commands:
     description: Spin the wheel for an item of value or an upgrade module
     permission: spiderbot.wheel
 
+  spiderpack:
+    description: Send or reload the Spiderbot resource pack
+    usage: /<command> <send [player]|reload>
+    permission: spiderbot.pack.admin
+
 permissions:
+  spiderbot.pack.admin:
+    description: Allows /spiderpack
+    default: op
   spiderbot.items:
     description: Allows access to the items command
     default: true

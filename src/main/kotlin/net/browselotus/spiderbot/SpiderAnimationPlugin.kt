@@ -19,11 +19,14 @@ import net.browselotus.spiderbot.utilities.events.onSpawnEntity
 import net.browselotus.spiderbot.utilities.events.onTick
 import net.browselotus.spiderbot.utilities.setupCoreUtils
 import net.browselotus.spiderbot.utilities.shutdownCoreUtils
+import net.browselotus.spiderbot.resourcepack.PackSender
 import org.bukkit.Bukkit
 import org.bukkit.plugin.java.JavaPlugin
 
 @Suppress("unused")
 class SpiderAnimationPlugin : JavaPlugin() {
+    private val packSender = PackSender(this)
+
     fun writeAndSaveConfig() {
         // Persist every online player's current spider customization to disk right away,
         // rather than waiting for them to leave or the server to shut down.
@@ -36,6 +39,7 @@ class SpiderAnimationPlugin : JavaPlugin() {
 
     override fun onDisable() {
         logger.info("Disabling Spider Animation plugin")
+        packSender.disable()
         shutdownCoreUtils()
     }
 
@@ -43,6 +47,7 @@ class SpiderAnimationPlugin : JavaPlugin() {
         logger.info("Enabling Spider Animation plugin")
 
         setupCoreUtils()
+        packSender.enable()
 
         setupCommands()
         setupItems()

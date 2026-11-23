@@ -1,0 +1,13 @@
+{
+  "pack": {
+    "description": "Spiderbot Upgrade Modules & Mk9 Configurator item textures",
+    "min_format": [
+      75,
+      0
+    ],
+    "max_format": [
+      75,
+      0
+    ]
+  }
+}

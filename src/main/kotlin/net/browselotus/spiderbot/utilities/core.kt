@@ -38,6 +38,16 @@ fun JavaPlugin.shutdownCoreUtils() {
     closeableList.forEach { it.close() }
 }
 
+/**
+ * Tags an item with a custom_model_data string that the Spiderbot resource pack switches on.
+ * Players without the pack just see the normal vanilla item.
+ */
+fun org.bukkit.inventory.meta.ItemMeta.setSpiderbotModel(id: String) {
+    val component = customModelDataComponent
+    component.strings = listOf("spiderbot:$id")
+    setCustomModelDataComponent(component)
+}
+
 fun namespacedID(id: String): NamespacedKey {
     return NamespacedKey(currentPlugin, id)
 }

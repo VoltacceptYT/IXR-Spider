@@ -1,5 +1,6 @@
 package net.browselotus.spiderbot.spider.gui
 
+import net.browselotus.spiderbot.utilities.setSpiderbotModel
 import net.browselotus.spiderbot.AppState
 import net.browselotus.spiderbot.spider.components.maxPartHp
 import net.browselotus.spiderbot.spider.configuration.MODULE_SLOTS_PER_PART
@@ -247,6 +248,7 @@ private fun moduleDisplay(module: UpgradeModule): ItemStack {
         line(Component.text("Click to take out", NamedTextColor.GOLD)),
         line(Component.text("Shift-click to send to your inventory", NamedTextColor.DARK_GRAY)),
     ))
+    meta.setSpiderbotModel(module.modelId)
     meta.addEnchant(Enchantment.UNBREAKING, 1, true)
     meta.addItemFlags(ItemFlag.HIDE_ENCHANTS, ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP)
     item.itemMeta = meta

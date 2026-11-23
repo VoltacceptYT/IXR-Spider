@@ -1,0 +1,29 @@
+# Spiderbot resource pack delivery (same behaviour as the ResourceSender plugin).
+http:
+  # true  = serve the pack over the Minecraft server's own port (no extra port needed).
+  #         If this can't be set up, the plugin falls back to a separate web server.
+  #         Doesn't work behind Velocity/BungeeCord; set this to false there.
+  # false = run a separate web server on bind-address:port below.
+  share-game-port: true
+  # Only used when share-game-port is false (or as the fallback).
+  bind-address: "0.0.0.0"
+  port: 8080
+  # Leave "" to auto-detect: players download from the same address they joined with.
+  public-host: ""
+  # Optional: full base URL override (no path), e.g. "https://packs.example.com".
+  public-url: ""
+
+resource-pack:
+  # The plugin zips the "pack" folder from its jar into this file (inside plugins/spiderbot/)
+  # on every start/reload, and serves that.
+  file: "pack.zip"
+  send-on-join: true
+  join-delay-ticks: 20
+  # If true, players who decline are disconnected by the client.
+  force: false
+  # MiniMessage format. Leave "" for no prompt.
+  prompt: "<yellow>This server uses a custom resource pack."
+  # true  = every send gets a fresh random URL (/pack/<token>.zip) and a fresh pack UUID.
+  # false = everyone uses the static /pack.zip URL and one stable pack UUID.
+  per-join-urls: true
+  per-join-ttl-seconds: 600

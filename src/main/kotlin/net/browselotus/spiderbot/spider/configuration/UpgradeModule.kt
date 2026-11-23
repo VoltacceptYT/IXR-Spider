@@ -41,6 +41,9 @@ enum class UpgradeModule(
         weaponOnly = true, weight = 6);
 
     val isPlating get() = plateHp > 0
+
+    /** Name of this module's texture in the resource pack (custom_model_data string `spiderbot:<modelId>`). */
+    val modelId get() = name.lowercase()
 }
 
 /** The modules installed in each component of a robot: two general slots, plus the weapon slot on the firepower component. */

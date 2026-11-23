@@ -4,6 +4,7 @@ import net.browselotus.spiderbot.spider.configuration.UpgradeModule
 import net.browselotus.spiderbot.utilities.custom_items.CustomItemComponent
 import net.browselotus.spiderbot.utilities.custom_items.attach
 import net.browselotus.spiderbot.utilities.namespacedID
+import net.browselotus.spiderbot.utilities.setSpiderbotModel
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
@@ -26,6 +27,7 @@ fun createUpgradeModuleItem(module: UpgradeModule): ItemStack {
         Component.empty(),
         line(Component.text("Drag it into a component slot in the Mk9 Configurator", NamedTextColor.YELLOW)),
     ))
+    meta.setSpiderbotModel(module.modelId)
     meta.persistentDataContainer.set(MODULE_KEY, PersistentDataType.STRING, module.name)
     item.itemMeta = meta
     return item.attach(upgradeModuleComponent)

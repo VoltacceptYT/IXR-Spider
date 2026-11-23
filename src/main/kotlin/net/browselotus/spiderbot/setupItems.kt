@@ -21,6 +21,7 @@ import net.browselotus.spiderbot.utilities.currentPlugin
 import net.browselotus.spiderbot.utilities.ecs.ECSEntity
 import net.browselotus.spiderbot.utilities.events.onTick
 import net.browselotus.spiderbot.utilities.namespacedID
+import net.browselotus.spiderbot.utilities.setSpiderbotModel
 import net.browselotus.spiderbot.utilities.raycastGround
 import net.browselotus.spiderbot.utilities.overloads.direction
 import net.browselotus.spiderbot.utilities.overloads.eyePosition
@@ -54,6 +55,7 @@ private fun createConfiguratorItem(): ItemStack {
     val item = ItemStack(Material.NETHERITE_UPGRADE_SMITHING_TEMPLATE)
     val meta = item.itemMeta ?: return item
 
+    meta.setSpiderbotModel("mk9_configurator")
     meta.itemName(rainbowText("Mk9 Configurator"))
     meta.lore(listOf(
         Component.text("Right Click to customize your Mk9 Spider", NamedTextColor.GRAY)

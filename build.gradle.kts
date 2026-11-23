@@ -12,6 +12,8 @@ repositories {
 dependencies {
     compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
+    // Compile-time only; the server provides Netty at runtime (used to serve the pack on the game port).
+    compileOnly("io.netty:netty-all:4.1.118.Final")
 }
 
 kotlin {
@@ -26,7 +28,12 @@ tasks {
 
     shadowJar {
         archiveClassifier.set("")
+        manifest {
+            // The pack sender uses Mojang-mapped names via reflection, so tell Paper not to remap this plugin.
+            attributes("paperweight-mappings-namespace" to "mojang")
+        }
     }
+
 
     build {
         dependsOn(shadowJar)
