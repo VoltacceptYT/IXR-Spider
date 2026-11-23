@@ -11,6 +11,10 @@ commands:
     description: Spin the wheel for an item of value or an upgrade module
     permission: spiderbot.wheel
 
+  upgrades:
+    description: Admin menu with 64 of every upgrade module
+    permission: spiderbot.upgrades.admin
+
   spiderpack:
     description: Send or reload the Spiderbot resource pack
     usage: /<command> <send [player]|reload>
@@ -19,6 +23,9 @@ commands:
 permissions:
   spiderbot.pack.admin:
     description: Allows /spiderpack
+    default: op
+  spiderbot.upgrades.admin:
+    description: Allows /upgrades, the admin menu with 64 of every upgrade module
     default: op
   spiderbot.items:
     description: Allows access to the items command

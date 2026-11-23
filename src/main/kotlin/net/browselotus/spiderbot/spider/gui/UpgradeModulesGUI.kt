@@ -8,6 +8,7 @@ import net.browselotus.spiderbot.spider.configuration.PartRole
 import net.browselotus.spiderbot.spider.configuration.PartSpec
 import net.browselotus.spiderbot.spider.configuration.SpiderOptions
 import net.browselotus.spiderbot.spider.configuration.UpgradeModule
+import net.browselotus.spiderbot.spider.configuration.corePart
 import net.browselotus.spiderbot.spider.configuration.firepowerRole
 import net.browselotus.spiderbot.spider.configuration.WEAPON_SLOT
 import net.browselotus.spiderbot.spider.configuration.weaponPart
@@ -134,6 +135,10 @@ private fun handleSlotClick(player: Player, options: SpiderOptions, spec: PartSp
 
     if (slot == WEAPON_SLOT && !held.weaponOnly) return deny("Only weapon modules fit the weapon slot")
     if (slot != WEAPON_SLOT && held.weaponOnly) return deny("${held.displayName} only fits the weapon slot")
+    if (held.coreOnly && spec.role != PartRole.CORE) {
+        val coreLabel = options.corePart()?.label ?: "Central Core"
+        return deny("${held.displayName} only fits the $coreLabel")
+    }
     val otherSlots = (0..WEAPON_SLOT).filter { it != slot }
     if (otherSlots.any { upgrades.get(spec.id, it) == held }) return deny("${spec.label} already has ${held.displayName}")
     if (current != null && cursor.amount > 1) return deny("Remove the module in this slot first")

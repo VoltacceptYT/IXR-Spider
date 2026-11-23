@@ -9,6 +9,10 @@ const val MODULE_SLOTS_PER_PART = 2
 /** The weapon slot: an extra slot on the component that fires the lasers. It only takes weapon modules. */
 const val WEAPON_SLOT = MODULE_SLOTS_PER_PART
 
+/** Matrix Swarm: how many drones it launches, and how many hits each one takes before it crashes. */
+const val SWARM_SIZE = 3
+const val SWARM_DRONE_HITS = 2
+
 private const val TOTAL_SLOTS = MODULE_SLOTS_PER_PART + 1
 
 /** Upgrade modules that can be dragged into a component's slots in the Mk9 Configurator. They are won from `/wheel`. */
@@ -21,6 +25,8 @@ enum class UpgradeModule(
     val plateHp: Int = 0,
     /** A weapon module: it only fits the weapon slot, and the weapon slot only takes weapon modules. */
     val weaponOnly: Boolean = false,
+    /** A core module: it only fits the general slots of the Central Core, and no other component takes it. */
+    val coreOnly: Boolean = false,
     /** Relative chance of coming up on the wheel, among the modules. */
     val weight: Int,
 ) {
@@ -50,7 +56,10 @@ enum class UpgradeModule(
         weaponOnly = true, weight = 4),
     REPULSOR_COIL("Repulsor Coil", Material.BREEZE_ROD, NamedTextColor.LIGHT_PURPLE,
         "Lasers shove targets back, keeping them at a distance. Only fits a weapon slot",
-        weaponOnly = true, weight = 5);
+        weaponOnly = true, weight = 5),
+    MATRIX_SWARM("Matrix Swarm", Material.AMETHYST_SHARD, NamedTextColor.LIGHT_PURPLE,
+        "Launches $SWARM_SIZE combat drones that circle the robot and fire on its targets. Lost drones are replaced after 20 seconds. Only fits the Central Core",
+        coreOnly = true, weight = 3);
 
     val isPlating get() = plateHp > 0
 
@@ -127,3 +136,12 @@ fun SpiderOptions.weaponCooldownFactor() =
 
 /** The beam splitter works while it sits in the weapon slot of a firepower component that has not been knocked out. */
 fun SpiderOptions.beamSplitterActive() = activeWeaponModule() == UpgradeModule.BEAM_SPLITTER
+
+/** The Central Core: the only component a core module (the Matrix Swarm) fits. */
+fun SpiderOptions.corePart(): PartSpec? = partSpecs().firstOrNull { it.role == PartRole.CORE }
+
+/** The Matrix Swarm works while it sits in a general slot of the core, as long as the core has not been knocked out. */
+fun SpiderOptions.matrixSwarmActive(): Boolean {
+    val core = corePart() ?: return false
+    return damage.of(core.id) > 0.0 && upgrades.has(core.id, UpgradeModule.MATRIX_SWARM)
+}
