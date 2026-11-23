@@ -2,7 +2,16 @@ package net.browselotus.spiderbot.spider.components
 
 import net.browselotus.spiderbot.spider.components.body.SpiderBody
 import net.browselotus.spiderbot.spider.configuration.CreatureType
+import net.browselotus.spiderbot.spider.configuration.CRYO_DURATION_FACTOR
+import net.browselotus.spiderbot.spider.configuration.CRYO_SLOWNESS_BONUS
+import net.browselotus.spiderbot.spider.configuration.OVERCHARGE_DAMAGE_FACTOR
+import net.browselotus.spiderbot.spider.configuration.OVERCHARGE_SIZE_FACTOR
+import net.browselotus.spiderbot.spider.configuration.PLASMA_BURN_TICKS
+import net.browselotus.spiderbot.spider.configuration.REPULSOR_LIFT
+import net.browselotus.spiderbot.spider.configuration.REPULSOR_PUSH
 import net.browselotus.spiderbot.spider.configuration.SpiderOptions
+import net.browselotus.spiderbot.spider.configuration.UpgradeModule
+import net.browselotus.spiderbot.spider.configuration.activeWeaponModule
 import net.browselotus.spiderbot.spider.configuration.beamSplitterActive
 import net.browselotus.spiderbot.spider.configuration.capabilities
 import net.browselotus.spiderbot.utilities.ecs.Component
@@ -74,6 +83,8 @@ class SpiderProjectile(
     val shooter: ECSEntity? = null,
     /** Pellets from a beam splitter land together, so each one has to be able to hurt despite the target's hit immunity. */
     val ignoreHitImmunity: Boolean = false,
+    /** The weapon module this was fired with, which adds an effect when it hits. */
+    val weaponModule: UpgradeModule? = null,
 ) : Component {
     var age = 0
     var previousPosition: Vector = position.clone()
@@ -107,6 +118,9 @@ fun fireSpiderProjectile(app: ECS, entity: ECSEntity, spider: SpiderBody, option
     if (spread > 0.0) {
         direction.add(Vector(Random.nextDouble(-spread, spread), Random.nextDouble(-spread, spread), Random.nextDouble(-spread, spread))).normalize()
     }
+
+    val weaponModule = options.activeWeaponModule()
+    val overcharged = weaponModule == UpgradeModule.OVERCHARGE_CAPACITOR
 
     if (options.beamSplitterActive()) {
         // beam splitter: three smaller lasers fanned out like a shotgun blast
@@ -143,13 +157,14 @@ fun fireSpiderProjectile(app: ECS, entity: ECSEntity, spider: SpiderBody, option
                 position = muzzle,
                 velocity = direction.multiply(config.projectileSpeed),
                 target = target,
-                damage = config.damage,
+                damage = if (overcharged) config.damage * OVERCHARGE_DAMAGE_FACTOR else config.damage,
                 slownessDurationTicks = config.slownessDurationTicks,
                 slownessAmplifier = config.slownessAmplifier,
                 maxAgeTicks = config.projectileLifetimeTicks,
-                scale = scale,
+                scale = if (overcharged) scale * OVERCHARGE_SIZE_FACTOR else scale,
                 creature = options.creature,
                 shooter = entity,
+                weaponModule = weaponModule,
             )
         )
     }
@@ -192,6 +207,32 @@ private fun laserImpactEffect(world: World, impact: Vector, lightSpot: Vector) {
     }
 }
 
+/** The extra effect a weapon module gives a laser that hits [target]. */
+private fun applyWeaponModuleHit(projectile: SpiderProjectile, target: LivingEntity) {
+    val at = target.location.add(0.0, target.height / 2, 0.0)
+    when (projectile.weaponModule) {
+        UpgradeModule.PLASMA_IGNITER -> {
+            target.fireTicks = maxOf(target.fireTicks, PLASMA_BURN_TICKS)
+            projectile.world.spawnParticle(Particle.FLAME, at, 12, 0.25, 0.3, 0.25, 0.02)
+        }
+        UpgradeModule.CRYO_COOLANT -> {
+            target.freezeTicks = target.maxFreezeTicks
+            projectile.world.spawnParticle(Particle.SNOWFLAKE, at, 14, 0.25, 0.3, 0.25, 0.02)
+        }
+        UpgradeModule.OVERCHARGE_CAPACITOR -> {
+            projectile.world.spawnParticle(Particle.ELECTRIC_SPARK, at, 16, 0.25, 0.3, 0.25, 0.3)
+        }
+        UpgradeModule.REPULSOR_COIL -> {
+            val push = projectile.velocity.clone().setY(0.0)
+            if (push.lengthSquared() > 1e-9) {
+                target.velocity = target.velocity.add(push.normalize().multiply(REPULSOR_PUSH).setY(REPULSOR_LIFT))
+            }
+            projectile.world.spawnParticle(Particle.POOF, at, 8, 0.2, 0.2, 0.2, 0.05)
+        }
+        else -> {}
+    }
+}
+
 fun setupSpiderProjectiles(app: ECS) {
     app.onTick {
         for ((entity, projectile) in app.query<ECSEntity, SpiderProjectile>()) {
@@ -225,9 +266,16 @@ fun setupSpiderProjectiles(app: ECS) {
                     target.damage(projectile.damage)
                     projectile.shooter?.let { provokeMob(it, target) }
                     if (projectile.creature == CreatureType.DROID) laserImpactEffect(projectile.world, projectile.position, projectile.position)
+                    val cryo = projectile.weaponModule == UpgradeModule.CRYO_COOLANT
                     target.addPotionEffect(
-                        PotionEffect(PotionEffectType.SLOWNESS, projectile.slownessDurationTicks, projectile.slownessAmplifier, false, true)
+                        PotionEffect(
+                            PotionEffectType.SLOWNESS,
+                            if (cryo) projectile.slownessDurationTicks * CRYO_DURATION_FACTOR else projectile.slownessDurationTicks,
+                            if (cryo) projectile.slownessAmplifier + CRYO_SLOWNESS_BONUS else projectile.slownessAmplifier,
+                            false, true,
+                        )
                     )
+                    applyWeaponModuleHit(projectile, target)
                     app.emit(SpiderProjectileHitEvent(world = projectile.world, position = projectile.position.clone(), target = target, creature = projectile.creature))
                     entity.remove()
                     continue

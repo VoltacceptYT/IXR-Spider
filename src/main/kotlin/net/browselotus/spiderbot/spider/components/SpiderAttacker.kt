@@ -2,6 +2,7 @@ package net.browselotus.spiderbot.spider.components
 
 import net.browselotus.spiderbot.spider.components.body.SpiderBody
 import net.browselotus.spiderbot.spider.configuration.SpiderOptions
+import net.browselotus.spiderbot.spider.configuration.weaponCooldownFactor
 import net.browselotus.spiderbot.spider.configuration.capabilities
 import net.browselotus.spiderbot.utilities.ecs.Component
 import net.browselotus.spiderbot.utilities.ecs.ECS
@@ -115,7 +116,7 @@ fun setupSpiderAttack(app: ECS) {
             val distance = spider.position.distance(target.position)
             if (attacker.cooldown <= 0 && distance <= config.attackRange) {
                 fireSpiderProjectile(app, entity, spider, options, target)
-                attacker.cooldown = (config.cooldownTicks / caps.firepower).toInt()
+                attacker.cooldown = (config.cooldownTicks * options.weaponCooldownFactor() / caps.firepower).toInt()
             }
         }
     }

@@ -38,7 +38,19 @@ enum class UpgradeModule(
         "+5 hit points on its component", plateHp = 5, weight = 4),
     BEAM_SPLITTER("Beam Splitter", Material.PRISMARINE_CRYSTALS, NamedTextColor.AQUA,
         "Splits each laser into 3 smaller lasers that spread like a shotgun. Only fits a weapon slot",
-        weaponOnly = true, weight = 6);
+        weaponOnly = true, weight = 6),
+    PLASMA_IGNITER("Plasma Igniter", Material.BLAZE_POWDER, NamedTextColor.RED,
+        "Lasers set their target on fire for 4 seconds. Only fits a weapon slot",
+        weaponOnly = true, weight = 5),
+    CRYO_COOLANT("Cryo Coolant", Material.ECHO_SHARD, NamedTextColor.DARK_AQUA,
+        "Lasers slow targets much harder, for twice as long, and frost them over. Only fits a weapon slot",
+        weaponOnly = true, weight = 5),
+    OVERCHARGE_CAPACITOR("Overcharge Capacitor", Material.GLOWSTONE_DUST, NamedTextColor.YELLOW,
+        "Lasers are bigger and deal double damage, but the weapon fires 50% slower. Only fits a weapon slot",
+        weaponOnly = true, weight = 4),
+    REPULSOR_COIL("Repulsor Coil", Material.BREEZE_ROD, NamedTextColor.LIGHT_PURPLE,
+        "Lasers shove targets back, keeping them at a distance. Only fits a weapon slot",
+        weaponOnly = true, weight = 5);
 
     val isPlating get() = plateHp > 0
 
@@ -88,7 +100,30 @@ fun SpiderOptions.firepowerRole() = if (creature == CreatureType.DROID) PartRole
 /** The component that carries the weapon slot. */
 fun SpiderOptions.weaponPart(): PartSpec? = partSpecs().firstOrNull { it.role == firepowerRole() }
 
+/** Plasma igniter: how long (ticks) a hit sets its target on fire. */
+const val PLASMA_BURN_TICKS = 80
+
+/** Cryo coolant: slowness duration is multiplied by this, and its amplifier goes up by [CRYO_SLOWNESS_BONUS]. */
+const val CRYO_DURATION_FACTOR = 2
+const val CRYO_SLOWNESS_BONUS = 2
+
+/** Overcharge capacitor: laser damage and size are multiplied by these, and the time between shots by [OVERCHARGE_COOLDOWN_FACTOR]. */
+const val OVERCHARGE_DAMAGE_FACTOR = 2.0
+const val OVERCHARGE_SIZE_FACTOR = 1.4
+const val OVERCHARGE_COOLDOWN_FACTOR = 1.5
+
+/** Repulsor coil: horizontal and upward push (blocks per tick of velocity) a hit gives its target. */
+const val REPULSOR_PUSH = 1.1
+const val REPULSOR_LIFT = 0.35
+
+/** The module in the weapon slot, as long as the firepower component has not been knocked out. */
+fun SpiderOptions.activeWeaponModule(): UpgradeModule? = partSpecs()
+    .firstOrNull { it.role == firepowerRole() && damage.of(it.id) > 0.0 }
+    ?.let { upgrades.get(it.id, WEAPON_SLOT) }
+
+/** Multiplier on the time between shots from the installed weapon module. */
+fun SpiderOptions.weaponCooldownFactor() =
+    if (activeWeaponModule() == UpgradeModule.OVERCHARGE_CAPACITOR) OVERCHARGE_COOLDOWN_FACTOR else 1.0
+
 /** The beam splitter works while it sits in the weapon slot of a firepower component that has not been knocked out. */
-fun SpiderOptions.beamSplitterActive() = partSpecs().any {
-    it.role == firepowerRole() && damage.of(it.id) > 0.0 && upgrades.get(it.id, WEAPON_SLOT) == UpgradeModule.BEAM_SPLITTER
-}
+fun SpiderOptions.beamSplitterActive() = activeWeaponModule() == UpgradeModule.BEAM_SPLITTER
